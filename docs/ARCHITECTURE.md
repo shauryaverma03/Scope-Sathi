@@ -51,7 +51,7 @@ sequenceDiagram
     F-->>A: Commit confirmed
     A-->>B: Updated project
   else Invalid or stale
-    A-->>B: Error; no confirmed change
+    A-->>B: Error - no confirmed change
   end
 ```
 
