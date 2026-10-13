@@ -192,4 +192,8 @@ docs/      Guides, architecture, validation and images
 
 [All documentation](docs/README.md) · [Architecture](docs/ARCHITECTURE.md) · [Free setup](docs/FREE_SETUP.md) · [Email setup](docs/EMAIL_SETUP.md) · [Google deployment](docs/GOOGLE_SETUP.md)
 
+## License
+
+Licensed under the [MIT License](LICENSE).
+
 **Built for thoughtful teams. Every change deserves a clear decision.**
