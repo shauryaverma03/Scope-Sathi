@@ -1,10 +1,10 @@
 # Connect ScopeSathi to Google Cloud
 
-The local app works now in **demo mode**. It does not call Gemini or use cloud storage until you complete this setup. All hosted application services are Google services. React, Express and other open-source libraries are not separate hosting providers.
+This guide describes the intended **google-mode deployment**, not a completed public deployment. A local installation can already use Firebase/Firestore independently. Inspect Settings for its actual connection state. React, Express and other open-source libraries are not separate hosting providers. See [architecture](ARCHITECTURE.md) and [configuration](CONFIGURATION.md).
 
 ## 1. Create your project
 
-1. Open https://console.firebase.google.com/ and create **ScopeSathi**. Record the generated **project ID**; this is different from its display name. Use your hackathon account/credits if provided.
+1. Open https://console.firebase.google.com/ and select the existing **scopesathi** project. Only create a project for a genuinely separate installation. Record its **project ID**, which differs from the display name. Use program credits only if actually provided.
 2. Link billing for Cloud Run and Vertex AI. Set a budget alert in Cloud Billing. An alert is not a spending cap. No billing account is created or changed by this repository.
 3. In Firebase Authentication, enable **Google** sign-in and select a support email. Add `localhost` and `127.0.0.1` to Authorized domains if you will test live authentication locally.
 4. Create the default Cloud Firestore database in **production mode**. Choose your data location deliberately (for example a suitable India region); location is a project infrastructure choice, not a UI setting.
@@ -83,7 +83,11 @@ Cloud Run already serves the app. If you prefer a `web.app` URL:
 3. Run `npx firebase-tools deploy --only hosting --project "$PROJECT_ID"`.
 4. Verify sign-in and API calls through the Hosting URL. Firebase Hosting imposes a 60-second request limit; Gemini calls are bounded to 45 seconds in this app.
 
-Teammates sign in with verified Google accounts. The project owner adds their exact account email and role in Project settings. No invitation email is sent.
+Teammates sign in with verified Google accounts. The owner invites their exact account email and role in Project settings. They must accept before gaining new access. Branded emails require the sender configuration described in [email setup](EMAIL_SETUP.md).
+
+## Email deployment gap
+
+The deployment script does not configure SMTP secrets or APP_PUBLIC_URL. Configure those separately through a secret store and the actual HTTPS app URL; disable EMAIL_LOCAL_TEST. The current 15-second polling worker is not a durable scheduler. Request-based CPU and scale-to-zero can delay mail indefinitely when no requests arrive. Before relying on hosted notifications, implement a durable triggered worker or deliberately provision continuously running processing with its cost implications. No such infrastructure is automatically created by this repository.
 
 ## Data and current limits
 

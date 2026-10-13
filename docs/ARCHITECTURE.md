@@ -1,35 +1,90 @@
-# ScopeSathi architecture
+# Architecture
 
-## Request path
+[Documentation home](README.md) · [Data model](DATA_MODEL.md)
 
-Browser → Firebase Google sign-in → Firebase ID token in Authorization header → Cloud Run API verifies token and revocation → project membership/role check → validated action → Firestore transaction.
+ScopeSathi is a React client and one Express backend. The backend owns authorization, validation and persistence so approval rules are consistent across browsers.
 
-For AI work: authorised request → current approved baseline and existing tasks → Vertex AI Gemini structured JSON → Zod validation → exact passage/ID checks → save a pending request. No AI tool can update the baseline or grant permissions.
+```mermaid
+flowchart TB
+  U[Browser - React] --> AUTH[Firebase Google authentication]
+  AUTH --> TOKEN[ID token]
+  TOKEN --> API[Express API]
+  U -->|Same-origin requests| API
+  API --> GUARD[Rate limits and role checks]
+  GUARD --> DOMAIN[Evidence and approval rules]
+  DOMAIN --> STORE[Storage adapter]
+  STORE --> FS[(Firestore)]
+  STORE --> LOCAL[(Explicit local JSON mode)]
+  DOMAIN --> AI[Optional Gemini]
+  AI -->|Validated proposals only| DOMAIN
+  FS --> OUT[Mail outbox]
+  OUT --> WORKER[Backend polling worker]
+  WORKER --> SMTP[Gmail SMTP]
+```
 
-For approval: reviewer + current project revision + current baseline version + resolved questions → apply reviewed changes → append baseline snapshot → flag linked tasks → append decision event, all in one transaction. Concurrent requests with an old revision receive 409. AI analysis occurs outside transactions to avoid repeated model calls on transaction retry.
+Storage branches are configuration alternatives, not failover. Firestore failures do not switch to local storage. Browsers do not write directly to Firestore. Email currently uses SMTP, not Gmail API.
 
-## State transitions
+## Modes
 
-- Project without baseline → extraction draft (browser only) → explicit reviewer approval → baseline version 1.
-- New request → pending.
-- Pending → approved / rejected / clarification (terminal decision).
-- Pending on an older baseline → reanalysis → pending against current baseline.
-- Clarification response → a new request, preserving the earlier decision.
-- Approved scope change → a new immutable-by-workflow version and affected tasks marked `needs_review`.
-- Reviewer/editor confirms task wording and status → normal task workflow.
+| Mode | Identity | Storage | Analysis |
+| --- | --- | --- | --- |
+| demo | Loopback demo actor | Local JSON | Known sample/manual |
+| firebase | Verified Google user | Explicit local or Firestore | Manual or Gemini Developer API |
+| google | Verified Google user; revocation check | Firestore | Vertex AI Gemini |
 
-## Permission boundaries
+Production and Cloud Run reject local modes. Google mode requires a model configuration.
 
-Owner controls membership and deletion. Reviewer approves baselines and changes. Editor creates requests and manages tasks. Viewer only reads/exports. Verified Google account emails bind invitations to users. No invitations are emailed. Direct browser Firestore access is denied by rules; backend Admin SDK permissions require application-level checks.
+## Approval transaction
 
-Local demo has one loopback-only actor and JSON persistence. It is refused on Cloud Run or when NODE_ENV=production. It does not offer actual collaborative authentication or live AI. Known sample analysis is labelled as such; unknown requests require manual clarification.
+```mermaid
+sequenceDiagram
+  participant B as Browser
+  participant A as API
+  participant F as Firestore
+  B->>A: Decision, revision and reason
+  A->>A: Verify token and rate budget
+  A->>F: Read project in transaction
+  A->>A: Check role, revision, evidence, questions and allowance
+  alt Valid decision
+    A->>A: Apply findings, append version/history, flag tasks
+    A->>F: Write project with incremented revision
+    F-->>A: Commit confirmed
+    A-->>B: Updated project
+  else Invalid or stale
+    A-->>B: Error; no confirmed change
+  end
+```
 
-## Limits to address before production
+AI generation occurs outside transactions to avoid repeated calls during transaction retries. The subsequent write checks the original project revision. Local writes are serialized and use temporary-file rename, not distributed locking.
 
-- One project per Firestore document (700 KB application cap). Move requests/events/versions to subcollections and add pagination for growth.
-- Per-instance in-memory rate limits. Add distributed per-user/project budgets and an edge rate limiter for broad public deployment.
-- AI source substring checks establish that a quote exists, not that the interpretation is correct. Evaluate semantic accuracy on held-out examples.
-- The app does not infer approvals from client messages, determine contractual authority, estimate prices, or modify source code.
-- Original uploads are discarded after text extraction; retain permitted documents in Cloud Storage only if a later feature requires originals.
-- PDF parsing happens in-process and is limited to 2 MB. Harden parser isolation, malware handling and compute limits before accepting arbitrary public uploads at scale.
-- No live Google Cloud deployment or model call has been verified until project credentials and infrastructure are supplied.
+## Source map
+
+| Module | Responsibility |
+| --- | --- |
+| src/App.tsx, WorkspacePanels.tsx | Navigation, editors, comparisons and tasks |
+| src/Welcome.tsx, Notifications.tsx | Home, tour, preferences and invitation inbox |
+| src/api.ts | Firebase session, bearer tokens, downloads |
+| shared/model.ts | Schemas, types, legacy defaults and round summaries |
+| server/index.ts, protection.ts | HTTP routes, limits and lifecycle |
+| server/domain.ts | Authorization and approval invariants |
+| server/store.ts, database.ts, migration.ts | Storage, connection verification and explicit migration |
+| server/ai.ts | Structured generation and manual/sample modes |
+| server/invitations.ts, email.ts | Invitation transactions and outbox |
+
+## Intended deployment
+
+```mermaid
+flowchart LR
+  B[Browser] --> H[Optional Firebase Hosting]
+  H -->|API rewrite| R[Cloud Run Express service]
+  B -->|Or direct app URL| R
+  R -->|Service account ADC| F[Firestore]
+  R --> V[Vertex AI]
+  R --> S[SMTP sender]
+```
+
+Cloud Run serves the bundled frontend too. This is a deployment design, not evidence of a completed deployment. Use attached service-account credentials and a secret store.
+
+## Tradeoffs
+
+One project document makes scope/task/history changes atomic but requires whole-project reads and a 700 KB application cap. Lists are not paginated. Growth needs subcollections, pagination and explicit data migration. Per-process limiters are not global budgets. PDF parsing is in-process. The mail polling timer is not a durable scheduler and is unreliable on sleeping/scale-to-zero hosts. These are production gaps, not implemented distributed services.

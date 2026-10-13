@@ -1,5 +1,17 @@
 # Validation record
 
+## Latest summary — documentation reviewed 14 October 2026
+
+The entries below are chronological historical records; older configuration limitations may have been resolved by later entries. They do not establish the state of another installation.
+
+- Latest backend-protection run: 39 automated tests passed and production build passed. The malformed-JSON assertion was subsequently verified in the six-test API suite.
+- Earlier live Firestore and invitation fixture checks are recorded below; they were not rerun for this documentation update.
+- A styled local Gmail test was previously received by the project author. Template screenshots are previews, not delivery receipts. End-to-end delivery must be checked for each deployment.
+- Public Cloud Run/Firebase Hosting deployment and live Gemini analysis remain unverified here.
+- This documentation update checks relative links, screenshot files and consistency against source. It does not claim a new production security audit or load test.
+
+See [system protections](SYSTEM_DESIGN.md), [image provenance](images/README.md) and [documentation index](README.md).
+
 Initial local verification: 11 October 2026.
 
 ## Automated checks

@@ -1,6 +1,12 @@
 # ScopeSathi email delivery
 
-Welcome, invitation and active-access notifications are persisted in Firestore. In-app invitations work even when mail is not configured. New invitations only accept enabled, verified Google accounts already registered with ScopeSathi. Recipients accept or decline in the notification inbox; new project access is granted only after acceptance. Invitations expire after seven days and can be revoked by the owner.
+Welcome, invitation and active-access notifications are persisted in Firestore. In-app invitations work even when mail is not configured. Registered recipients must be enabled, verified Google accounts. If an address is not registered, the owner must confirm a signup invitation. Recipients accept or decline using the matching verified Google account; new project access is granted only after acceptance. Invitations expire after seven days and can be revoked by the owner.
+
+[Documentation home](README.md)
+
+![Actual invitation template preview](images/invitation-preview.jpg)
+
+This browser-rendered template uses demonstration content; it is not an inbox delivery receipt.
 
 Existing project permissions remain intact. On their next login, existing teammates get a role notice in their inbox. A role badge also appears beside the project name.
 
@@ -14,11 +20,25 @@ Save the app password in a private text file outside this project. Then run:
 npm run email:configure -- sender@gmail.com /absolute/path/to/private-password.txt https://your-public-app.example
 ```
 
-The script verifies SMTP access and stores the settings only in ignored local `.env`. It sends no test email. Restart the backend after setup. The public URL must be the actual HTTPS address where recipients can access your ScopeSathi app. The current localhost preview is not reachable from a teammate’s computer, so email delivery remains waiting for setup until a public address is provided.
+The script verifies SMTP access and stores the settings only in ignored local `.env`. It sends no test email. Restart the backend after setup. The public URL must be the actual HTTPS address where recipients can access your ScopeSathi app. Localhost is not reachable from a teammate’s computer. Without that URL, delivery waits for setup unless explicit local-test mode is enabled as described below.
 
 The app uses smtp.gmail.com on port 465 with TLS. Keep EMAIL_ENABLED=false if you want in-app notifications without automatic mail. Enabling delivery releases waiting welcome and active pending-invitation emails; expired/revoked/decided invitations are cancelled. SMTP acceptance is labelled as submission, not proof of inbox delivery.
 
 ## Delivery status
+
+```mermaid
+stateDiagram-v2
+  [*] --> waiting_setup
+  waiting_setup --> queued: Sender becomes available
+  queued --> sending: Worker claims job
+  sending --> sent: SMTP accepts
+  sending --> failed: Submission fails
+  sending --> uncertain: Interrupted lease
+  waiting_setup --> cancelled: Invitation no longer active
+  queued --> cancelled: Invitation no longer active
+```
+
+The diagram describes delivery states, not inbox guarantees. Welcome deduplication is transactional, while SMTP delivery cannot guarantee exactly once across a crash.
 
 - waiting_setup: sender or public app URL is missing; no email was sent.
 - queued: awaiting the backend worker.

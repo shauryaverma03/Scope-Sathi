@@ -143,6 +143,11 @@ test("new project, extraction, baseline and text upload", async () => {
   assert.equal((await req(`/projects/${p.id}`)).status, 404);
 });
 test("foreign browser origin is rejected and invalid inputs return 400", async () => {
+  const malformed = await fetch(base + "/projects", {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: "{",
+  });
+  assert.equal(malformed.status, 400);
+  assert.equal((await malformed.json()).requestId, malformed.headers.get("x-request-id"));
   assert.equal(
     (await req("/sample", "POST", {}, { Origin: "https://example.com" }))
       .status,

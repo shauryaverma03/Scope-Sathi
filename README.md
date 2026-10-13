@@ -6,10 +6,34 @@
 
 React · TypeScript · Firebase · Firestore · Gmail · Optional Gemini
 
-[Features](#features) · [Get started](#get-started) · [Google stack](#google-stack) · [Configuration](#configuration)
+[Features](#features) · [Get started](#get-started) · [Documentation](docs/README.md) · [Architecture](docs/ARCHITECTURE.md) · [Google stack](#google-stack)
 </div>
 
-![ScopeSathi Google technology stack](docs/images/google-stack.png)
+![ScopeSathi public home page](docs/images/home.jpg)
+
+*Actual application screenshot. Workspace screenshots below use demonstration data; see [image provenance](docs/images/README.md).*
+
+## Documentation
+
+Start at the **[documentation hub](docs/README.md)** for the complete project guide.
+
+| Understand the product | Understand the implementation | Run and maintain it |
+| --- | --- | --- |
+| [Illustrated product guide](docs/PRODUCT_GUIDE.md) | [Architecture and diagrams](docs/ARCHITECTURE.md) | [Local setup](docs/FREE_SETUP.md) |
+| [AI and evidence review](docs/AI_WORKFLOW.md) | [Technology: why and how](docs/TECHNOLOGY.md) | [Configuration](docs/CONFIGURATION.md) |
+| [Email and invitations](docs/EMAIL_SETUP.md) | [Data model](docs/DATA_MODEL.md) | [Google deployment](docs/GOOGLE_SETUP.md) |
+| [Validation record](docs/VALIDATION.md) | [API reference](docs/API.md) | [Security and operations](docs/SECURITY_OPERATIONS.md) |
+| [Contribution guide](docs/CONTRIBUTING.md) | [Rate limits and system design](docs/SYSTEM_DESIGN.md) | [Screenshot provenance](docs/images/README.md) |
+
+## Inside the workspace
+
+![Revision dashboard with demonstration data](docs/images/overview.jpg)
+
+*Submitted requests, approved changes and revision rounds are counted separately.*
+
+![Task impact after a reviewed change](docs/images/task-impact.jpg)
+
+*Affected work is flagged for human review. More screenshots: [product guide](docs/PRODUCT_GUIDE.md).*
 
 ## Why ScopeSathi?
 
@@ -61,6 +85,8 @@ Configure an included allowance, group related requests into a round and count e
 Invalid email formats are rejected. A correctly formatted address cannot be guaranteed to exist or be free of typos. SMTP acceptance is not proof of inbox delivery.
 
 ## Google stack
+
+![Illustrative Google technology stack](docs/images/google-stack.png)
 
 | Technology | Role | Development status |
 |---|---|---|
@@ -164,6 +190,6 @@ scripts/   Configuration and deployment helpers
 docs/      Guides, architecture, validation and images
 ```
 
-[Architecture](docs/ARCHITECTURE.md) · [Free setup](docs/FREE_SETUP.md) · [Email setup](docs/EMAIL_SETUP.md) · [Google deployment](docs/GOOGLE_SETUP.md)
+[All documentation](docs/README.md) · [Architecture](docs/ARCHITECTURE.md) · [Free setup](docs/FREE_SETUP.md) · [Email setup](docs/EMAIL_SETUP.md) · [Google deployment](docs/GOOGLE_SETUP.md)
 
 **Built for thoughtful teams. Every change deserves a clear decision.**

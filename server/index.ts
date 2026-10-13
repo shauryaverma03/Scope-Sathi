@@ -1,3 +1,4 @@
+import { requestContext, makeLimit } from "./protection.js";
 import {
   sessionWelcome,
   syncExistingMemberships,
@@ -113,6 +114,8 @@ app.use(
     strictTransportSecurity: cloud ? undefined : false,
   }),
 );
+app.use("/api", requestContext);
+app.use("/api", makeLimit(600, 60000));
 app.use(express.json({ limit: "350kb" }));
 app.use("/api", (_req, res, next) => {
   res.set("Cache-Control", "no-store");
@@ -231,11 +234,14 @@ const aiLimit = rateLimit({
     error: "Analysis limit reached. Wait a minute before trying again.",
   },
 });
+const invitationLimit = makeLimit(10, 3600000, true);
+const connectionLimit = makeLimit(6, 60000, true);
+app.use("/api/session", makeLimit(10, 60000, true));
 const actor = (res: express.Response) => res.locals.actor as Actor;
 const Revision = z.number().int().nonnegative();
 const Brief = z.string().trim().min(20).max(16000);
 const id = (req: express.Request) => z.uuid().parse(req.params.id);
-app.get("/api/connection", async (_req, res) =>
+app.get("/api/connection", connectionLimit, async (_req, res) =>
   res.json(await databaseStatus(firestore, true)),
 );
 app.get("/api/migration", async (_req, res) => {
@@ -628,7 +634,7 @@ app.post("/api/notifications/:notificationId/decision", async (req, res) => {
     ),
   );
 });
-app.post("/api/projects/:id/members", async (req, res) => {
+app.post("/api/projects/:id/members", invitationLimit, async (req, res) => {
   if (!firestore)
     throw new AppError(
       409,
@@ -711,6 +717,9 @@ app.use(
     res: express.Response,
     _next: express.NextFunction,
   ) => {
+    if (res.headersSent) return _next(err);
+    if (err?.type === "entity.parse.failed")
+      return res.status(400).json({ error: "Invalid JSON request.", requestId: res.locals.requestId });
     if (err instanceof z.ZodError)
       return res.status(400).json({
         error: "Please check your input.",
@@ -750,8 +759,21 @@ if (firestore && emailReady()) {
   void deliverQueuedMail();
 }
 const port = Number(process.env.PORT || 8080);
-app.listen(port, cloud ? "0.0.0.0" : "127.0.0.1", () =>
+const server = app.listen(port, cloud ? "0.0.0.0" : "127.0.0.1", () =>
   console.log(
     `ScopeSathi API: http://127.0.0.1:${port} (${mode} / ${firestore ? "Firestore" : "local storage"})`,
   ),
 );
+
+server.headersTimeout = 15000;
+server.requestTimeout = 60000;
+server.keepAliveTimeout = 5000;
+let stopping = false;
+for (const signal of ["SIGTERM", "SIGINT"] as const) {
+  process.on(signal, () => {
+    if (stopping) return;
+    stopping = true;
+    server.close(() => process.exit(0));
+    setTimeout(() => process.exit(1), 10000).unref();
+  });
+}

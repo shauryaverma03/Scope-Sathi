@@ -31,7 +31,7 @@ Free-tier availability depends on region/model/account and has limits. Google do
 
 ## Team access
 
-The owner grants viewer, editor or reviewer access by Google email in project settings; no invitation email is sent. Both users must reach the same backend to share projects. Localhost on another laptop points to that laptop, not this Mac. Public deployment is a separate task; do not expose the demo server.
+The owner invites viewers, editors or reviewers by Google email in project settings. Pending invitations grant no access; recipients accept with the matching verified account. A configured sender queues a branded invitation email; otherwise the in-app notice remains available. Unknown addresses require owner confirmation. Both users must reach the same backend to share projects. Localhost on another laptop points to that laptop, not this Mac. Public deployment is a separate task; do not expose the demo server. See [email setup](EMAIL_SETUP.md).
 
 ## Checks
 

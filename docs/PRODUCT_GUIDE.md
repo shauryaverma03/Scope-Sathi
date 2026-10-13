@@ -1,0 +1,65 @@
+# Product guide
+
+[Documentation home](README.md)
+
+ScopeSathi preserves the original agreement while a team reviews later client requests. It records evidence and decisions; it does not determine legal obligations or charge a client.
+
+## Home, sign-in and tour
+
+![Public home page](images/home.jpg)
+
+The home page introduces the approval workflow. Sign-in and sign-up both use Google authentication, not a separate password database. Session persistence is the default; remember-me uses Firebase local persistence. Optional tour remembrance is separate. There are no advertising or analytics cookies implemented.
+
+## Capture the baseline
+
+Create a project and open Approved scope. Record the goal, users, features, deliverables, constraints, acceptance criteria and excluded work. Paste a brief or upload a selectable-text PDF/TXT. Review extracted wording and exact quotes before approving baseline version 1.
+
+Limits: 2 MB uploads, 16,000-character briefs and 30 extracted requirements. Scanned PDFs need external OCR. Original file bytes are discarded after extraction; retained source text is not an archival PDF copy. Approved intake is frozen by the workflow; later changes go through requests.
+
+## Compare incoming requests
+
+Record the message, title and source. Findings contain requirement references, baseline quotes, request quotes, proposed wording, questions and task links. One request can have multiple findings.
+
+| Classification | Meaning |
+| --- | --- |
+| Addition | Proposed new requirement |
+| Modification | Proposed replacement wording |
+| Removal | Proposed removal |
+| Clarification | Unresolved question |
+| No change | No baseline amendment needed |
+
+Configured Gemini proposes findings. Without it, review is explicitly manual. The known demo scenario uses labelled prepared output. Resolve ambiguity and save the proposal; proposal editing does not approve it.
+
+## Decide and compare versions
+
+![Actual demonstration version comparison](images/scope-versions.jpg)
+
+Owners/reviewers record a reason and approve, reject or request clarification. Approval checks current revisions, source evidence and unresolved questions. Previous snapshots remain available. Clarification is a terminal decision; submit a follow-up request to preserve the earlier record.
+
+## Track revision rounds
+
+![Actual demonstration revision dashboard](images/overview.jpg)
+
+The owner configures an allowance and round definition. Related requests share a round. Multiple approved new-scope requests in one round consume it once. Corrections, rejection, clarification and no-change findings do not consume allowance. Beyond-allowance approval requires a recorded separate agreement; it does not create an invoice. `null` means unlimited; zero means no included new-scope rounds.
+
+## Review task impact and export
+
+![Actual task board after a demonstration change](images/task-impact.jpg)
+
+Tasks link to requirements. Approval flags affected tasks as `needs_review`, rather than silently rewriting them. A member with write access reviews the task and updates its status. Tasks export as CSV; scope and history export as JSON. Exports are snapshots, not full database backups or an import format.
+
+## Invite collaborators
+
+Owners invite reviewers, editors or viewers. Pending invitations grant no access. Registered recipients must be enabled, verified Google users. Unknown addresses require owner confirmation to send a signup invitation. Acceptance uses the matching verified account; invitations expire after seven days and can be revoked. Email syntax checks cannot prove a mailbox exists.
+
+![Rendered invitation template using demonstration content](images/invitation-preview.jpg)
+
+This is a template preview, not inbox delivery evidence. In-app notifications work independently of a configured sender. See [email setup](EMAIL_SETUP.md).
+
+## Onboarding on mobile
+
+<img src="images/tour-mobile.jpg" alt="Actual mobile tour first step" width="320" />
+
+Reopen the tour from the interface. Each workspace tab has a relevant empty state. Account and connection settings are available before creating a project. Loading transitions respect reduced-motion preferences.
+
+No OCR, meeting recording, Jira synchronization, automatic billing, automatic approvals or code modification is implemented. Live model accuracy and production capacity require separate evaluation.
