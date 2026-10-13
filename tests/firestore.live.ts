@@ -1,0 +1,124 @@
+import "dotenv/config";
+import assert from "node:assert/strict";
+import { initializeApp, applicationDefault } from "firebase-admin/app";
+import { getFirestore } from "firebase-admin/firestore";
+import { spawn } from "node:child_process";
+import { randomUUID } from "node:crypto";
+import { createStore } from "../server/store";
+import {
+  createProject,
+  approveBaseline,
+  addRequest,
+  decide,
+  setRevisionPolicy,
+} from "../server/domain";
+import { analyse, extract } from "../server/ai";
+import { SAMPLE_BRIEF, SAMPLE_REQUEST } from "../shared/model";
+if (!process.env.GOOGLE_APPLICATION_CREDENTIALS)
+  throw new Error(
+    "Configure the Admin credential first. Live Firestore verification has not run.",
+  );
+initializeApp({ credential: applicationDefault(), projectId: "scopesathi" });
+const store = createStore(true);
+const owner = {
+  uid: `validation-${randomUUID()}`,
+  email: "verification@scopesathi.invalid",
+  name: "ScopeSathi validation",
+};
+const outsider = {
+  uid: "validation-outsider",
+  email: "outsider@scopesathi.invalid",
+  name: "Outsider",
+};
+if (process.argv[2] === "--read") {
+  const p = await store.get(process.argv[3], {
+    ...owner,
+    uid: process.argv[4],
+  });
+  assert.equal(p.versions.length, 2);
+  assert.equal(p.tasks[0].status, "needs_review");
+  assert.equal(p.requests[0].status, "approved");
+  console.log("Fresh-process Firestore read passed.");
+} else {
+  const project = createProject(
+    owner,
+    "ScopeSathi temporary verification",
+    "",
+    "Disposable record for persistence verification",
+  );
+  let created = false;
+  try {
+    await store.create(project);
+    created = true;
+    let p = await store.update(project.id, owner, 0, (p) => {
+      approveBaseline(p, owner, SAMPLE_BRIEF, [
+        {
+          id: "REQ-001",
+          text: SAMPLE_BRIEF.split("\n")[0],
+          quote: SAMPLE_BRIEF.split("\n")[0],
+        },
+      ]);
+      p.tasks.push({
+        id: "T1",
+        title: "Checkout",
+        status: "todo",
+        requirementIds: ["REQ-001"],
+      });
+      setRevisionPolicy(
+        p,
+        owner,
+        1,
+        "One included round for this verification project.",
+      );
+    });
+    const analysis = await analyse(p, SAMPLE_REQUEST, false, true);
+    analysis.findings[0].questions = [];
+    p = await store.update(p.id, owner, p.revision, (p) =>
+      addRequest(p, owner, {
+        id: randomUUID(),
+        title: "Guest checkout",
+        source: "Verification fixture",
+        text: SAMPLE_REQUEST,
+        createdAt: new Date().toISOString(),
+        createdBy: owner.email,
+        baselineVersion: 1,
+        analysis,
+        engine: "Prepared verification fixture",
+        status: "pending",
+        category: "new_scope",
+        roundId: "test-round",
+      }),
+    );
+    p = await store.update(p.id, owner, p.revision, (p) =>
+      decide(
+        p,
+        owner,
+        p.requests[0].id,
+        "approved",
+        "Verified tracking behaviour",
+      ),
+    );
+    p = await store.update(p.id, owner, p.revision, (p) => {
+      p.tasks[0].title = "Review guest checkout implementation";
+    });
+    assert.equal(
+      (await getFirestore().collection("projects").doc(p.id).get()).exists,
+      true,
+    );
+    await assert.rejects(store.get(p.id, outsider), /not found/);
+    const child = spawn(
+      process.execPath,
+      ["--import", "tsx", "tests/firestore.live.ts", "--read", p.id, owner.uid],
+      { stdio: "inherit", env: process.env },
+    );
+    const code = await new Promise<number | null>((resolve) =>
+      child.once("exit", resolve),
+    );
+    assert.equal(code, 0);
+    console.log(
+      "Live Firestore create, baseline, request, approval, task update, unauthorized access and fresh-process persistence checks passed. Google browser sign-in is tested separately.",
+    );
+  } finally {
+    if (created) await store.delete(project.id, owner);
+  }
+}

@@ -1,0 +1,22 @@
+node_modules
+dist
+.git
+.env
+.env.*
+.data
+.firebase
+test-results
+playwright-report
+
+# Private credentials and local-only artifacts
+.secrets/
+credentials/
+*-firebase-adminsdk-*.json
+*service-account*.json
+*service_account*.json
+*mail-password*.txt
+*.pem
+*.key
+*.p12
+*.pfx
+*.log

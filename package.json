@@ -1,0 +1,55 @@
+{
+  "name": "scope-sathi",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "concurrently -k -n api,web \"tsx watch server/index.ts\" \"vite --host 127.0.0.1\"",
+    "build": "tsc --noEmit && vite build",
+    "start": "tsx server/index.ts",
+    "test": "tsx --test tests/*.test.ts",
+    "check": "tsc --noEmit",
+    "cloud:configure": "node scripts/configure-google.mjs",
+    "format": "prettier --write src server shared tests scripts/*.mjs *.json vite.config.ts",
+    "firestore:configure": "node scripts/configure-firestore.mjs",
+    "test:firestore": "node --import tsx tests/firestore.live.ts",
+    "email:configure": "node scripts/configure-email.mjs",
+    "test:invitations": "node --import tsx tests/invitations.live.ts"
+  },
+  "dependencies": {
+    "@google/genai": "^2.28.0",
+    "dotenv": "^17.0.0",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.0.0",
+    "firebase": "^13.0.0",
+    "firebase-admin": "^14.5.0",
+    "helmet": "^8.0.0",
+    "lucide-react": "^0.468.0",
+    "multer": "^2.0.0",
+    "nodemailer": "^10.1.0",
+    "pdf-parse": "^2.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tsx": "^4.20.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/multer": "^2.0.0",
+    "@types/node": "^22.0.0",
+    "@types/nodemailer": "^8.0.2",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.5.0",
+    "concurrently": "^9.0.0",
+    "prettier": "^3.9.10",
+    "typescript": "^5.8.0",
+    "vite": "^6.3.0"
+  },
+  "overrides": {
+    "@grpc/grpc-js": "^1.14.6"
+  }
+}
