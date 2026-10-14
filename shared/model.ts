@@ -48,6 +48,9 @@ export type RevisionRound = {
   createdBy: string;
 };
 export type RevisionPolicy = {
+  currency?: "INR" | "USD" | "EUR" | "GBP";
+  rateMinor?: number;
+  clientEmail?: string;
   includedRounds: number | null;
   definition: string;
 };
@@ -107,6 +110,7 @@ export function normalizeProject(p: Project): Project {
   p.intake ||= emptyIntake();
   p.revisionPolicy ||= defaultPolicy();
   p.rounds ||= [];
+  p.quotes ||= [];
   p.invitations ||= [];
   for (const r of p.requests) {
     r.category ||= "new_scope";
@@ -185,6 +189,7 @@ export type Project = {
   intake: Intake;
   revisionPolicy: RevisionPolicy;
   rounds: RevisionRound[];
+  quotes?: RoundQuote[];
   invitations: Invitation[];
   brief: string;
   requirements: Requirement[];
@@ -208,3 +213,57 @@ export type Config = {
 export const SAMPLE_BRIEF = `Customers must sign in with an email address and password before checkout.\nThe store must support a product catalogue with search and category filters.\nSigned-in customers must be able to view their order history.\nPayments must be processed through the payment provider selected by the client.\nThe admin must be able to update product availability and prices.`;
 export const SAMPLE_REQUEST =
   "Can customers also check out without creating an account? They should receive an email confirmation and a link to track their order.";
+
+export type RoundQuote = {
+  id: string;
+  roundId: string;
+  currency: string;
+  amountMinor: number;
+  clientEmail: string;
+  scope: string;
+  requestIds: string[];
+  state: "proposed" | "accepted" | "declined" | "superseded";
+  createdAt: string;
+  createdBy: string;
+  decidedAt?: string;
+  decidedBy?: string;
+  invoiceReference?: string;
+  invoicedAt?: string;
+  acceptedAt?: string;
+};
+export function roundScope(p: Project, roundId: string) {
+  return JSON.stringify(
+    p.requests
+      .filter(
+        (r) =>
+          (r.roundId || r.id) === roundId &&
+          (r.status === "pending" || r.status === "approved") &&
+          (r.category || "new_scope") === "new_scope" &&
+          isScopeChange(r),
+      )
+      .map((r) => ({
+        id: r.id,
+        text: r.text,
+        findings: r.analysis.findings
+          .map((f) => ({
+            id: f.id,
+            kind: f.kind,
+            title: f.title,
+            requirementId: f.requirementId,
+            currentQuote: f.currentQuote,
+            requestQuote: f.requestQuote,
+            proposedText: f.proposedText,
+            reason: f.reason,
+            questions: [...f.questions].sort(),
+            taskIds: [...f.taskIds].sort(),
+          }))
+          .sort((a, b) => a.id.localeCompare(b.id)),
+      }))
+      .sort((a, b) => a.id.localeCompare(b.id)),
+  );
+}
+export function money(minor: number, currency: string) {
+  return new Intl.NumberFormat("en-IN", { style: "currency", currency }).format(
+    minor / 100,
+  );
+}

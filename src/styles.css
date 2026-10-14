@@ -2703,3 +2703,7 @@ blockquote {
 .sparkle-reveal-mark path { stroke: currentColor; stroke-width: 3; stroke-linejoin: round; }
 @keyframes sparkle-completion { 0% { transform: scale(.45); opacity: 0; } 20% { transform: scale(1); opacity: 1; } 65% { transform: scale(1.12); opacity: 1; } 100% { transform: scale(22); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .sparkle-reveal-mark { animation: none; } }
+
+.cost-panel progress {width:100%;height:18px;accent-color:#254e40;}
+.quote-scope {white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;}
+.cost-panel {margin-bottom:24px;}

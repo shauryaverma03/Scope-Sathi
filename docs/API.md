@@ -22,7 +22,7 @@ All paths below start with /api. Google modes require Authorization: Bearer <Fir
 | POST /projects/:id/extract | Extract draft requirements from brief |
 | POST /projects/:id/intake | Save structured intake and optional brief |
 | POST /projects/:id/baseline | Approve initial requirements and brief |
-| POST /projects/:id/revision-policy | Owner updates includedRounds and definition |
+| POST /projects/:id/revision-policy | Owner updates includedRounds, definition, currency, rateMinor and clientEmail |
 | POST /projects/:id/rounds | Create a named round |
 | POST /projects/:id/requests | Submit title, source, text, category, roundId |
 | POST /projects/:id/requests/:requestId/reanalyse | Reanalyse pending request |
@@ -71,3 +71,15 @@ Use the revision returned by the last project response. After 409, reload and re
 Responses generally expose error and optionally details. Every API request has X-Request-ID; malformed JSON and new limiter responses also include requestId in JSON. It is not yet a universal error-body field. Log route templates rather than bodies or tokens. See [limits](SYSTEM_DESIGN.md).
 
 No general idempotency-key API exists. Revision checks protect many mutations, and invitation/welcome transactions provide specific deduplication. Avoid automatic replay of project creation, mail actions or ambiguous writes.
+
+## Revision pricing endpoints
+
+All mutations require the last returned revision and existing access/concurrency checks. Prices use integer minor units (50000 = INR 500.00).
+
+| Route | Permission and body |
+|---|---|
+| POST /projects/:id/quotes | Reviewer; roundId; snapshot extra-round scope and configured rate |
+| POST /projects/:id/quotes/:quoteId/respond | Designated client with active access; accept boolean; stale scope rejected |
+| POST /projects/:id/quotes/:quoteId/invoice | Owner; reference (3–150 characters); accepted and approved scope required |
+
+Revision policy accepts currency INR/USD/EUR/GBP, nonnegative integer rateMinor up to 100000000, and an accepted member clientEmail. Positive pricing requires a finite allowance and separate client. A current client-accepted quote is required for priced extra scope. These operations do not send mail or collect payment.

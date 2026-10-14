@@ -1,4 +1,6 @@
 import {
+  roundScope,
+  money,
   emptyIntake,
   defaultPolicy,
   needsSeparateAgreement,
@@ -270,6 +272,38 @@ export function decide(
       ["addition", "modification", "removal"].includes(f.kind),
     );
     if (changed) {
+      const roundId = r.roundId || r.id;
+      const quote = [...(p.quotes || [])]
+        .reverse()
+        .find((q) => q.roundId === roundId && q.state !== "superseded");
+      if (
+        (r.category || "new_scope") === "new_scope" &&
+        (quote ||
+          ((p.revisionPolicy.rateMinor || 0) > 0 &&
+            needsSeparateAgreement(
+              p,
+              roundId,
+              "new_scope",
+              r.analysis.findings,
+            )))
+      ) {
+        if (
+          !quote ||
+          quote.state !== "accepted" ||
+          quote.scope !== roundScope(p, roundId)
+        )
+          throw new AppError(
+            409,
+            "The client must accept a current quote for this round before scope approval.",
+          );
+        separateAgreement =
+          "Client " +
+          quote.decidedBy +
+          " accepted " +
+          money(quote.amountMinor, quote.currency) +
+          ". Quote " +
+          quote.id;
+      }
       if (
         needsSeparateAgreement(
           p,
@@ -324,17 +358,174 @@ export function setRevisionPolicy(
   a: Actor,
   includedRounds: number | null,
   definition: string,
+  pricing?: Pick<
+    Project["revisionPolicy"],
+    "currency" | "rateMinor" | "clientEmail"
+  >,
 ) {
   if (p.ownerId !== a.uid)
     throw new AppError(
       403,
       "Only the owner can change the revision allowance.",
     );
-  p.revisionPolicy = { includedRounds, definition };
+  const next = { ...p.revisionPolicy, includedRounds, definition, ...pricing };
+  if (
+    (next.rateMinor || 0) > 0 &&
+    (includedRounds === null ||
+      !next.clientEmail ||
+      !p.members[next.clientEmail] ||
+      next.clientEmail === p.ownerEmail)
+  )
+    throw new AppError(
+      400,
+      "Paid rounds require a finite allowance and a separate client with accepted project access.",
+    );
+  p.revisionPolicy = next;
+  event(p, a, "Revision pricing updated", JSON.stringify(next));
   event(
     p,
     a,
     "Revision allowance updated",
     `${includedRounds === null ? "No limit" : includedRounds + " included rounds"}. ${definition}`,
+  );
+}
+
+export function proposeRoundQuote(p: Project, a: Actor, roundId: string) {
+  access(p, a, true, true);
+  const policy = p.revisionPolicy;
+  if (
+    !policy.rateMinor ||
+    !policy.clientEmail ||
+    !p.members[policy.clientEmail] ||
+    policy.clientEmail === p.ownerEmail
+  )
+    throw new AppError(
+      400,
+      "Configure a rate and a separate client with project access first.",
+    );
+  const requests = p.requests.filter(
+    (r) =>
+      (r.roundId || r.id) === roundId &&
+      r.status === "pending" &&
+      (r.category || "new_scope") === "new_scope" &&
+      r.analysis.findings.some((f) =>
+        ["addition", "modification", "removal"].includes(f.kind),
+      ),
+  );
+  if (!requests.length)
+    throw new AppError(400, "No pending new-scope changes in this round.");
+  const previous = [...(p.quotes || [])]
+    .reverse()
+    .find((q) => q.roundId === roundId && q.state !== "superseded");
+  if (previous?.invoiceReference)
+    throw new AppError(409, "An invoiced round is closed. Create a new round.");
+  if (
+    !previous &&
+    !needsSeparateAgreement(
+      p,
+      roundId,
+      "new_scope",
+      requests[0].analysis.findings,
+    )
+  )
+    throw new AppError(409, "This round is included; no charge applies.");
+  if (
+    previous?.state === "accepted" &&
+    previous.scope === roundScope(p, roundId)
+  )
+    throw new AppError(409, "Quote already accepted.");
+  const accepted = [...(p.quotes || [])]
+    .reverse()
+    .find((q) => q.roundId === roundId && q.acceptedAt);
+  if (previous) previous.state = "superseded";
+  const q = {
+    id: randomUUID(),
+    roundId,
+    currency: accepted?.currency || policy.currency || "INR",
+    amountMinor: accepted?.amountMinor ?? policy.rateMinor,
+    clientEmail: policy.clientEmail,
+    scope: roundScope(p, roundId),
+    requestIds: requests.map((r) => r.id),
+    state: "proposed" as const,
+    createdAt: now(),
+    createdBy: a.email,
+  };
+  (p.quotes ||= []).push(q);
+  event(
+    p,
+    a,
+    "Round estimate proposed",
+    roundId +
+      ": " +
+      money(q.amountMinor, q.currency) +
+      " for " +
+      q.clientEmail +
+      ". Quote " +
+      q.id,
+  );
+}
+export function respondRoundQuote(
+  p: Project,
+  a: Actor,
+  id: string,
+  accept: boolean,
+) {
+  access(p, a);
+  const q = p.quotes?.find((q) => q.id === id);
+  if (!q) throw new AppError(404, "Quote not found.");
+  if (a.email.toLowerCase() !== q.clientEmail || p.ownerId === a.uid)
+    throw new AppError(403, "Only the designated client can respond.");
+  if (q.state !== "proposed" || q.scope !== roundScope(p, q.roundId))
+    throw new AppError(
+      409,
+      "Quote is outdated or no longer pending. Request an updated quote.",
+    );
+  q.state = accept ? "accepted" : "declined";
+  q.decidedAt = now();
+  q.decidedBy = a.email;
+  if (accept) q.acceptedAt = q.decidedAt;
+  event(
+    p,
+    a,
+    "Round estimate " + q.state,
+    q.id + ": " + money(q.amountMinor, q.currency) + ". Not a payment.",
+  );
+}
+export function recordInvoice(
+  p: Project,
+  a: Actor,
+  id: string,
+  reference: string,
+) {
+  if (p.ownerId !== a.uid)
+    throw new AppError(403, "Only the owner can record invoices.");
+  const q = p.quotes?.find((q) => q.id === id);
+  if (
+    !q ||
+    q.state !== "accepted" ||
+    q.invoiceReference ||
+    q.scope !== roundScope(p, q.roundId) ||
+    !q.requestIds.every((id) =>
+      p.requests.some((r) => r.id === id && r.status === "approved"),
+    )
+  )
+    throw new AppError(
+      409,
+      "Requires a current accepted quote, all quoted requests approved, and no existing invoice.",
+    );
+  if (reference.trim().length < 3)
+    throw new AppError(400, "Enter an invoice reference.");
+  q.invoiceReference = reference.trim();
+  q.invoicedAt = now();
+  event(
+    p,
+    a,
+    "Invoice recorded",
+    q.id +
+      ": " +
+      money(q.amountMinor, q.currency) +
+      "; reference " +
+      reference +
+      ". Payment not collected or verified.",
   );
 }

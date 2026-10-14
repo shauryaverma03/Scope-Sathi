@@ -24,3 +24,7 @@ Reviewed against source on **14 October 2026**. Screenshots are actual earlier d
 | [Contributing](CONTRIBUTING.md) | Checks, screenshots and safe publication |
 
 Implemented does not mean configured. Past service verification must be repeated after environment changes. Deployment files are not evidence of a successful public deployment. See [image provenance](images/README.md).
+
+## Revision pricing
+
+[Configure the allowance and cost meter](REVISION_PRICING.md): client consent, scope approval, fixed accepted rates and invoice references.

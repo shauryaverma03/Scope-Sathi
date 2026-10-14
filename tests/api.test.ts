@@ -144,10 +144,15 @@ test("new project, extraction, baseline and text upload", async () => {
 });
 test("foreign browser origin is rejected and invalid inputs return 400", async () => {
   const malformed = await fetch(base + "/projects", {
-    method: "POST", headers: { "Content-Type": "application/json" }, body: "{",
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: "{",
   });
   assert.equal(malformed.status, 400);
-  assert.equal((await malformed.json()).requestId, malformed.headers.get("x-request-id"));
+  assert.equal(
+    (await malformed.json()).requestId,
+    malformed.headers.get("x-request-id"),
+  );
   assert.equal(
     (await req("/sample", "POST", {}, { Origin: "https://example.com" }))
       .status,
@@ -310,4 +315,72 @@ test("API persists structured intake, round grouping and extra-round agreement",
   ).data;
   assert.equal(p.versions.length, 2);
   assert.match(p.requests[0].separateAgreement, /launch review/);
+});
+
+test("pricing endpoints enforce schema, client identity and concurrency", async () => {
+  let p = (await req("/sample", "POST", {})).data as Project;
+  for (const invalid of [
+    { rateMinor: -1 },
+    { rateMinor: 0.5 },
+    { currency: "INVALID" },
+    { clientEmail: "wrong-address" },
+  ]) {
+    const res = await req("/projects/" + p.id + "/revision-policy", "POST", {
+      revision: p.revision,
+      includedRounds: 5,
+      definition: "Related changes count as one round.",
+      ...invalid,
+    });
+    assert.equal(res.status, 400);
+  }
+  assert.equal(
+    (
+      await req("/projects/" + p.id + "/revision-policy", "POST", {
+        revision: p.revision,
+        includedRounds: 5,
+        definition: "Five included rounds before priced extra work.",
+        rateMinor: 50000,
+        clientEmail: "unknown@example.com",
+        currency: "INR",
+      })
+    ).status,
+    400,
+  );
+  assert.equal(
+    (
+      await req("/projects/" + p.id + "/quotes", "POST", {
+        revision: p.revision,
+        roundId: "missing",
+      })
+    ).status,
+    400,
+  );
+  assert.equal(
+    (
+      await req("/projects/" + p.id + "/quotes", "POST", {
+        revision: p.revision + 1,
+        roundId: "missing",
+      })
+    ).status,
+    409,
+  );
+  assert.equal(
+    (
+      await req("/projects/" + p.id + "/quotes/missing/respond", "POST", {
+        revision: p.revision,
+        accept: true,
+      })
+    ).status,
+    404,
+  );
+  assert.equal(
+    (
+      await req("/projects/" + p.id + "/quotes/missing/invoice", "POST", {
+        revision: p.revision,
+        reference: "INV-1",
+      })
+    ).status,
+    409,
+  );
+  assert.equal((await req("/projects/" + p.id)).data.revision, p.revision);
 });

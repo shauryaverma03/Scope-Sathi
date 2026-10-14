@@ -3,11 +3,17 @@ import {
   EmptyWorkspace,
   IntakePanel,
   RevisionPanel,
+  CostPanel,
   RequestSummary,
   VersionComparison,
   ConnectionPanel,
 } from "./WorkspacePanels";
-import { needsSeparateAgreement, revisionSummary } from "../shared/model";
+import {
+  needsSeparateAgreement,
+  revisionSummary,
+  roundScope,
+  money,
+} from "../shared/model";
 import { Home, FirstVisit } from "./Welcome";
 import React, { useState, useEffect } from "react";
 import {
@@ -111,8 +117,13 @@ function App() {
       setRevealComplete(false);
       return;
     }
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const timer = window.setTimeout(() => setRevealComplete(true), reduced ? 180 : 1800);
+    const reduced = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    const timer = window.setTimeout(
+      () => setRevealComplete(true),
+      reduced ? 180 : 1800,
+    );
     return () => window.clearTimeout(timer);
   }, [pageReady]);
   const p = projects.find((p) => p.id === selected);
@@ -521,6 +532,16 @@ function App() {
                   />
                 ) : (
                   <>
+                    {["overview", "requests", "settings"].includes(tab) && (
+                      <CostPanel
+                        p={p}
+                        email={email}
+                        owner={p.ownerId === (user?.uid || "local-demo")}
+                        canReview={!!canReview}
+                        run={run}
+                        update={update}
+                      />
+                    )}
                     {tab === "overview" && (
                       <Overview
                         p={p}
@@ -575,7 +596,7 @@ function App() {
                           refresh={checkConnection}
                         />
                         <RevisionPanel
-                          key={`policy-${p.id}-${p.revisionPolicy.includedRounds}`}
+                          key={`policy-${p.id}-${JSON.stringify(p.revisionPolicy)}`}
                           p={p}
                           run={run}
                           update={update}
@@ -756,8 +777,17 @@ function App() {
 }
 function SparkleReveal() {
   return (
-    <div className="sparkle-reveal" role="status" aria-label="Your page is ready">
-      <svg className="sparkle-reveal-mark" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+    <div
+      className="sparkle-reveal"
+      role="status"
+      aria-label="Your page is ready"
+    >
+      <svg
+        className="sparkle-reveal-mark"
+        viewBox="0 0 64 64"
+        fill="none"
+        aria-hidden="true"
+      >
         <path d="M32 7 39 24 56 32 39 39 32 57 25 39 8 32 25 25Z" />
       </svg>
     </div>
@@ -1711,6 +1741,31 @@ function Review({
     r.category || "new_scope",
     findings,
   );
+  const scopeChange = findings.some((f) =>
+    ["addition", "modification", "removal"].includes(f.kind),
+  );
+  const roundQuote = [...(p.quotes || [])]
+    .reverse()
+    .find((q) => q.roundId === (r.roundId || r.id) && q.state !== "superseded");
+  const needsClientConsent =
+    (r.category || "new_scope") === "new_scope" &&
+    scopeChange &&
+    (!!roundQuote ||
+      ((p.revisionPolicy.rateMinor || 0) > 0 && requiresAgreement));
+  const currentQuote =
+    roundQuote?.state === "accepted" &&
+    roundQuote.scope ===
+      roundScope(
+        {
+          ...p,
+          requests: p.requests.map((request) =>
+            request.id === r.id
+              ? { ...request, analysis: { ...request.analysis, findings } }
+              : request,
+          ),
+        },
+        r.roundId || r.id,
+      );
   return (
     <Modal
       title={r.title}
@@ -2039,7 +2094,16 @@ function Review({
               request clarification now.
             </p>
           )}
-          {requiresAgreement && (
+          {needsClientConsent && (
+            <div className="info">
+              <div>
+                {currentQuote && roundQuote
+                  ? `Client accepted ${money(roundQuote.amountMinor, roundQuote.currency)}. Approval will record quote ${roundQuote.id} as the separate agreement.`
+                  : "Client acceptance is required. Close this review and use the cost meter in Change requests to propose or update the estimate. The client can accept it from their own account."}
+              </div>
+            </div>
+          )}
+          {requiresAgreement && !needsClientConsent && (
             <label>
               Separate agreement for this additional round
               <textarea
@@ -2065,7 +2129,10 @@ function Review({
                 openQuestions ||
                 category !== r.category ||
                 roundId !== r.roundId ||
-                (requiresAgreement && agreement.trim().length < 10) ||
+                (needsClientConsent && !currentQuote) ||
+                (requiresAgreement &&
+                  !needsClientConsent &&
+                  agreement.trim().length < 10) ||
                 findings.length !== r.analysis.findings.length ||
                 findings.some((f, i) => f.id !== r.analysis.findings[i]?.id)
               }
@@ -2478,13 +2545,39 @@ function SettingsView({
                 const form = e.currentTarget,
                   data = new FormData(form);
                 run(async () => {
-                  const payload = { revision: p.revision, email: data.get("email"), role: data.get("role") };
+                  const payload = {
+                    revision: p.revision,
+                    email: data.get("email"),
+                    role: data.get("role"),
+                  };
                   try {
-                    update(await api<Project>(`/projects/${p.id}/members`, "POST", payload));
+                    update(
+                      await api<Project>(
+                        `/projects/${p.id}/members`,
+                        "POST",
+                        payload,
+                      ),
+                    );
                   } catch (error) {
-                    if (!(error instanceof Error) || !error.message.includes("RECIPIENT_NOT_REGISTERED")) throw error;
-                    if (!window.confirm(`${payload.email} has not signed up. Check the spelling. Send a signup invitation? Access will start only after they sign in with this email and accept. During local testing they must use this Mac.`)) throw new Error("Invitation cancelled. No email was queued.");
-                    update(await api<Project>(`/projects/${p.id}/members`, "POST", { ...payload, allowUnregistered: true }));
+                    if (
+                      !(error instanceof Error) ||
+                      !error.message.includes("RECIPIENT_NOT_REGISTERED")
+                    )
+                      throw error;
+                    if (
+                      !window.confirm(
+                        `${payload.email} has not signed up. Check the spelling. Send a signup invitation? Access will start only after they sign in with this email and accept. During local testing they must use this Mac.`,
+                      )
+                    )
+                      throw new Error(
+                        "Invitation cancelled. No email was queued.",
+                      );
+                    update(
+                      await api<Project>(`/projects/${p.id}/members`, "POST", {
+                        ...payload,
+                        allowUnregistered: true,
+                      }),
+                    );
                   }
                   form.reset();
                 }, "Invitation created. Your teammate must accept it before new access starts.");
@@ -2514,7 +2607,9 @@ function SettingsView({
                 Invite teammate
               </button>
               <p className="helper">
-                New teammates can receive a signup invitation. They must sign in with the invited Google account and accept before gaining access.{" "}
+                New teammates can receive a signup invitation. They must sign in
+                with the invited Google account and accept before gaining
+                access.{" "}
                 {config.email?.configured
                   ? "Email notification is queued; delivery status appears below."
                   : "Email delivery is waiting for sender setup."}

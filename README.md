@@ -71,7 +71,7 @@ For example, a client approves sign-in before checkout, then requests guest chec
 
 ### Revision rounds
 
-Configure an included allowance, group related requests into a round and count each approved new-scope round once. Corrections, rejection, clarification and no-change decisions do not consume it. Beyond-allowance approval requires a recorded separate agreement. No automatic charges or invented estimates.
+Configure an included allowance, group related requests into a round and count each approved new-scope round once. Corrections, rejection, clarification and no-change decisions do not consume it. Beyond-allowance approval requires a recorded separate agreement. Owners can configure an extra-round price and designated client. A cost meter shows estimates, accepted quotes and manually recorded invoice references. Priced extra rounds require client acceptance before scope approval. Accepted rates stay fixed, and no payment is collected. See [revision pricing setup](docs/REVISION_PRICING.md).
 
 ### Onboarding and collaboration
 

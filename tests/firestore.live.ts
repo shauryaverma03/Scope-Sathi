@@ -11,6 +11,9 @@ import {
   addRequest,
   decide,
   setRevisionPolicy,
+  proposeRoundQuote,
+  respondRoundQuote,
+  recordInvoice,
 } from "../server/domain";
 import { analyse, extract } from "../server/ai";
 import { SAMPLE_BRIEF, SAMPLE_REQUEST } from "../shared/model";
@@ -38,6 +41,9 @@ if (process.argv[2] === "--read") {
   assert.equal(p.versions.length, 2);
   assert.equal(p.tasks[0].status, "needs_review");
   assert.equal(p.requests[0].status, "approved");
+  assert.equal(p.quotes?.[0].state, "accepted");
+  assert.equal(p.quotes?.[0].amountMinor, 50000);
+  assert.equal(p.quotes?.[0].invoiceReference, "VALIDATION-001");
   console.log("Fresh-process Firestore read passed.");
 } else {
   const project = createProject(
@@ -64,11 +70,18 @@ if (process.argv[2] === "--read") {
         status: "todo",
         requirementIds: ["REQ-001"],
       });
+      p.members["client@scopesathi.invalid"] = "viewer";
+      p.memberEmails.push("client@scopesathi.invalid");
       setRevisionPolicy(
         p,
         owner,
-        1,
-        "One included round for this verification project.",
+        0,
+        "Zero included rounds in the pricing validation fixture.",
+        {
+          currency: "INR",
+          rateMinor: 50000,
+          clientEmail: "client@scopesathi.invalid",
+        },
       );
     });
     const analysis = await analyse(p, SAMPLE_REQUEST, false, true);
@@ -89,6 +102,23 @@ if (process.argv[2] === "--read") {
         roundId: "test-round",
       }),
     );
+    const client = {
+      uid: "validation-client",
+      email: "client@scopesathi.invalid",
+      name: "Validation client",
+    };
+    p = await store.update(p.id, owner, p.revision, (p) =>
+      proposeRoundQuote(p, owner, "test-round"),
+    );
+    await assert.rejects(
+      store.update(p.id, outsider, p.revision, (p) =>
+        respondRoundQuote(p, outsider, p.quotes![0].id, true),
+      ),
+      /not found/,
+    );
+    p = await store.update(p.id, client, p.revision, (p) =>
+      respondRoundQuote(p, client, p.quotes![0].id, true),
+    );
     p = await store.update(p.id, owner, p.revision, (p) =>
       decide(
         p,
@@ -101,10 +131,12 @@ if (process.argv[2] === "--read") {
     p = await store.update(p.id, owner, p.revision, (p) => {
       p.tasks[0].title = "Review guest checkout implementation";
     });
-    assert.equal(
-      (await getFirestore().collection("projects").doc(p.id).get()).exists,
-      true,
+    p = await store.update(p.id, owner, p.revision, (p) =>
+      recordInvoice(p, owner, p.quotes![0].id, "VALIDATION-001"),
     );
+    const saved = await getFirestore().collection("projects").doc(p.id).get();
+    assert.equal(saved.exists, true);
+    assert.equal(saved.data()?.quotes[0].invoiceReference, "VALIDATION-001");
     await assert.rejects(store.get(p.id, outsider), /not found/);
     const child = spawn(
       process.execPath,
@@ -116,7 +148,7 @@ if (process.argv[2] === "--read") {
     );
     assert.equal(code, 0);
     console.log(
-      "Live Firestore create, baseline, request, approval, task update, unauthorized access and fresh-process persistence checks passed. Google browser sign-in is tested separately.",
+      "Live Firestore create, baseline, request, quote, client acceptance, approval, invoice reference, task update, unauthorized access and fresh-process persistence checks passed. Google browser sign-in is tested separately.",
     );
   } finally {
     if (created) await store.delete(project.id, owner);

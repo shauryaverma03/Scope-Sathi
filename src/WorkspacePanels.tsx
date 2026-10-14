@@ -12,6 +12,9 @@ import {
 } from "lucide-react";
 import { api, download } from "./api";
 import {
+  money,
+  roundScope,
+  needsSeparateAgreement,
   emptyIntake,
   revisionSummary,
   type Intake,
@@ -148,6 +151,13 @@ export function RevisionPanel({
       : String(p.revisionPolicy.includedRounds),
   );
   const [definition, setDefinition] = useState(p.revisionPolicy.definition);
+  const [currency, setCurrency] = useState(p.revisionPolicy.currency || "INR");
+  const [rate, setRate] = useState(
+    String((p.revisionPolicy.rateMinor || 0) / 100),
+  );
+  const [clientEmail, setClientEmail] = useState(
+    p.revisionPolicy.clientEmail || "",
+  );
   const s = revisionSummary(p);
   return (
     <section className="panel">
@@ -182,6 +192,49 @@ export function RevisionPanel({
           />
         </label>
         <label>
+          Additional round price (0 = no priced quotes)
+          <input
+            type="number"
+            min="0"
+            max="1000000"
+            step="0.01"
+            disabled={!owner}
+            value={rate}
+            onChange={(e) => setRate(e.target.value)}
+          />
+        </label>
+        <label>
+          Currency
+          <select
+            disabled={!owner}
+            value={currency}
+            onChange={(e) => setCurrency(e.target.value as typeof currency)}
+          >
+            {["INR", "USD", "EUR", "GBP"].map((c) => (
+              <option key={c}>{c}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Client who accepts estimates
+          <select
+            disabled={!owner}
+            value={clientEmail}
+            onChange={(e) => setClientEmail(e.target.value)}
+          >
+            <option value="">Choose a project member</option>
+            {Object.keys(p.members)
+              .filter((e) => e !== p.ownerEmail)
+              .map((e) => (
+                <option key={e}>{e}</option>
+              ))}
+          </select>
+        </label>
+        <p className="helper">
+          Invite the client under Project access first. Accepted prices are
+          preserved when this policy changes.
+        </p>
+        <label>
           Round definition
           <textarea
             rows={3}
@@ -210,6 +263,9 @@ export function RevisionPanel({
                       revision: p.revision,
                       includedRounds: limit === "" ? null : Number(limit),
                       definition,
+                      currency,
+                      rateMinor: Math.round(Number(rate) * 100),
+                      clientEmail,
                     },
                   ),
                 ),
@@ -593,6 +649,301 @@ export function EmptyWorkspace({
       <button className="button primary" onClick={create}>
         <Plus size={17} /> Create your first project
       </button>
+    </section>
+  );
+}
+
+export function CostPanel({
+  p,
+  email,
+  owner,
+  canReview,
+  run,
+  update,
+}: {
+  p: Project;
+  email: string;
+  owner: boolean;
+  canReview: boolean;
+  run: Run;
+  update: (p: Project) => void;
+}) {
+  const [references, setReferences] = useState<Record<string, string>>({});
+  const summary = revisionSummary(p);
+  const quotes = (p.quotes || []).filter((q) => q.state !== "superseded");
+  const currencies = [
+    ...new Set([
+      p.revisionPolicy.currency || "INR",
+      ...quotes.map((q) => q.currency),
+    ]),
+  ];
+  const pendingRounds = p.rounds.filter((round) =>
+    p.requests.some(
+      (r) =>
+        (r.roundId || r.id) === round.id &&
+        r.status === "pending" &&
+        needsSeparateAgreement(
+          p,
+          round.id,
+          r.category || "new_scope",
+          r.analysis.findings,
+        ),
+    ),
+  );
+  const send = (path: string, body: object) =>
+    run(async () =>
+      update(
+        await api<Project>("/projects/" + p.id + path, "POST", {
+          revision: p.revision,
+          ...body,
+        }),
+      ),
+    );
+  return (
+    <section className="panel cost-panel">
+      <div className="panel-heading">
+        <div>
+          <h2>Revision allowance &amp; cost meter</h2>
+          <p>
+            Estimates require client acceptance and a separate scope approval.
+            No automatic charges.
+          </p>
+        </div>
+      </div>
+      <div className="editor-inner">
+        <label>
+          Included rounds:{" "}
+          {Math.min(
+            summary.used,
+            p.revisionPolicy.includedRounds ?? summary.used,
+          )}{" "}
+          / {p.revisionPolicy.includedRounds ?? "Unlimited"}
+          {p.revisionPolicy.includedRounds !== null && (
+            <progress
+              aria-label="Included revision rounds used"
+              max={Math.max(1, p.revisionPolicy.includedRounds)}
+              value={Math.min(summary.used, p.revisionPolicy.includedRounds)}
+            />
+          )}
+        </label>
+        <p>
+          {summary.remaining ?? "Unlimited"} remaining · {summary.beyond}{" "}
+          approved beyond allowance · {pendingRounds.length} pending beyond
+          allowance
+        </p>
+        <p>
+          Additional round rate:{" "}
+          {money(
+            p.revisionPolicy.rateMinor || 0,
+            p.revisionPolicy.currency || "INR",
+          )}
+          . {p.revisionPolicy.definition}
+        </p>
+        {!!p.revisionPolicy.rateMinor && (
+          <p>
+            Unquoted extra-work estimate:{" "}
+            <strong>
+              {money(
+                pendingRounds.filter(
+                  (round) => !quotes.some((q) => q.roundId === round.id),
+                ).length * p.revisionPolicy.rateMinor,
+                p.revisionPolicy.currency || "INR",
+              )}
+            </strong>
+            . Each related round is priced once.
+          </p>
+        )}
+        {currencies.map((c) => (
+          <div className="revision-metrics" key={c}>
+            {(["proposed", "accepted", "invoiced"] as const).map((state) => (
+              <strong key={state}>
+                {state === "proposed"
+                  ? "Estimated"
+                  : state === "accepted"
+                    ? "Client accepted"
+                    : "Invoiced"}
+                :{" "}
+                {money(
+                  quotes
+                    .filter(
+                      (q) =>
+                        q.currency === c &&
+                        (state === "invoiced"
+                          ? !!q.invoiceReference
+                          : q.state === state &&
+                            q.scope === roundScope(p, q.roundId)),
+                    )
+                    .reduce((n, q) => n + q.amountMinor, 0),
+                  c,
+                )}
+              </strong>
+            ))}
+          </div>
+        ))}
+        <p className="helper">
+          Accepted and invoiced totals overlap; do not add them together.
+          Invoiced means a reference was recorded, not that payment was
+          received.
+        </p>
+        {!quotes.length && (
+          <p>
+            No extra-work quotes yet. Configure pricing in Settings, then
+            propose an estimate when the included allowance is exhausted.
+          </p>
+        )}
+        {p.rounds.map((round) => {
+          const q = quotes.find((q) => q.roundId === round.id);
+          const eligible = pendingRounds.some((r) => r.id === round.id);
+          if (!q && !eligible) return null;
+          const current = q?.scope === roundScope(p, round.id);
+          return (
+            <article className="version-diff" key={round.id}>
+              <h3>{round.name}</h3>
+              {q ? (
+                <>
+                  <p>
+                    <strong>{money(q.amountMinor, q.currency)}</strong> ·{" "}
+                    {q.state}{" "}
+                    {current ? "" : "· Scope changed: fresh consent required"}
+                  </p>
+                  <p>
+                    Client: {q.clientEmail} · Proposed by {q.createdBy}
+                  </p>
+                  <details>
+                    <summary>Exact quoted scope</summary>
+                    <pre className="quote-scope">
+                      {JSON.parse(q.scope)
+                        .map(
+                          (r: {
+                            text: string;
+                            findings: {
+                              title: string;
+                              proposedText: string;
+                              requirementId: string;
+                              currentQuote: string;
+                              requestQuote: string;
+                              kind: string;
+                            }[];
+                          }) =>
+                            r.text +
+                            "\n" +
+                            r.findings
+                              .map((f) =>
+                                [
+                                  f.kind +
+                                    " · " +
+                                    (f.requirementId || "New requirement") +
+                                    ": " +
+                                    f.title,
+                                  "Original: " + (f.currentQuote || "None"),
+                                  "Client quote: " + f.requestQuote,
+                                  "Proposed: " +
+                                    (f.proposedText ||
+                                      "No replacement wording"),
+                                ].join("\n"),
+                              )
+                              .join("\n"),
+                        )
+                        .join("\n\n")}
+                    </pre>
+                  </details>
+                  {q.decidedBy && (
+                    <p>
+                      {q.state} by {q.decidedBy} on {q.decidedAt}
+                    </p>
+                  )}
+                  {q.state === "proposed" &&
+                    current &&
+                    email.toLowerCase() === q.clientEmail &&
+                    !owner && (
+                      <div className="button-row">
+                        <button
+                          className="button primary"
+                          onClick={() =>
+                            send("/quotes/" + q.id + "/respond", {
+                              accept: true,
+                            })
+                          }
+                        >
+                          Accept {money(q.amountMinor, q.currency)}
+                        </button>
+                        <button
+                          className="button"
+                          onClick={() =>
+                            send("/quotes/" + q.id + "/respond", {
+                              accept: false,
+                            })
+                          }
+                        >
+                          Decline estimate
+                        </button>
+                      </div>
+                    )}
+                  {q.invoiceReference ? (
+                    <p>Invoice reference: {q.invoiceReference}</p>
+                  ) : (
+                    owner &&
+                    q.state === "accepted" &&
+                    current &&
+                    q.requestIds.every((id) =>
+                      p.requests.some(
+                        (r) => r.id === id && r.status === "approved",
+                      ),
+                    ) && (
+                      <div>
+                        <label>
+                          Existing invoice reference
+                          <input
+                            maxLength={150}
+                            value={references[q.id] || ""}
+                            onChange={(e) =>
+                              setReferences({
+                                ...references,
+                                [q.id]: e.target.value,
+                              })
+                            }
+                          />
+                        </label>
+                        <button
+                          className="button"
+                          disabled={(references[q.id] || "").trim().length < 3}
+                          onClick={() =>
+                            send("/quotes/" + q.id + "/invoice", {
+                              reference: references[q.id],
+                            })
+                          }
+                        >
+                          Record invoice
+                        </button>
+                      </div>
+                    )
+                  )}
+                </>
+              ) : (
+                <p>
+                  Estimated extra round:{" "}
+                  {money(
+                    p.revisionPolicy.rateMinor || 0,
+                    p.revisionPolicy.currency || "INR",
+                  )}
+                  . Awaiting a formal quote.
+                </p>
+              )}
+              {canReview &&
+                !!p.revisionPolicy.rateMinor &&
+                !q?.invoiceReference &&
+                (!q || q.state === "declined" || !current) && (
+                  <button
+                    className="button"
+                    onClick={() => send("/quotes", { roundId: round.id })}
+                  >
+                    Propose estimate for client acceptance
+                  </button>
+                )}
+            </article>
+          );
+        })}
+      </div>
     </section>
   );
 }

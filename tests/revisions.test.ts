@@ -1,6 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  proposeRoundQuote,
+  respondRoundQuote,
+  recordInvoice,
   createProject,
   approveBaseline,
   addRequest,
@@ -13,6 +16,7 @@ import {
   emptyIntake,
   normalizeProject,
   revisionSummary,
+  roundScope,
   type Project,
   type ChangeRequest,
   type Finding,
@@ -253,4 +257,188 @@ test("migration fingerprints ignore Firestore map ordering", () => {
   const p = fixture();
   const reordered = Object.fromEntries(Object.entries(p).reverse()) as Project;
   assert.equal(fingerprint(p), fingerprint(reordered));
+});
+
+const client = { uid: "client", email: "client@example.com", name: "Client" };
+function priced() {
+  const p = fixture();
+  p.members[client.email] = "viewer";
+  setRevisionPolicy(
+    p,
+    owner,
+    0,
+    "One related group counts as a revision round.",
+    { currency: "INR", rateMinor: 50000, clientEmail: client.email },
+  );
+  return p;
+}
+test("priced approval requires client consent; accepted price survives policy edits; invoice requires approval", () => {
+  const p = priced();
+  request(p, "paid", "paid-round");
+  assert.throws(
+    () =>
+      decide(
+        p,
+        owner,
+        "paid",
+        "approved",
+        "Approve paid scope",
+        undefined,
+        "Verbal agreement recorded",
+      ),
+    /client must accept/,
+  );
+  proposeRoundQuote(p, owner, "paid-round");
+  const q = p.quotes![0];
+  assert.equal(q.amountMinor, 50000);
+  assert.throws(
+    () => respondRoundQuote(p, owner, q.id, true),
+    /designated client/,
+  );
+  assert.throws(
+    () => respondRoundQuote(p, editor, q.id, true),
+    /designated client/,
+  );
+  respondRoundQuote(p, client, q.id, true);
+  assert.throws(() => recordInvoice(p, owner, q.id, "INV-1"), /Requires/);
+  setRevisionPolicy(
+    p,
+    owner,
+    0,
+    "One related group counts as a revision round.",
+    { currency: "USD", rateMinor: 90000, clientEmail: client.email },
+  );
+  assert.equal(q.currency, "INR");
+  assert.equal(q.amountMinor, 50000);
+  decide(p, owner, "paid", "approved", "Scope and estimate accepted");
+  recordInvoice(p, owner, q.id, "INV-001");
+  assert.equal(q.invoiceReference, "INV-001");
+  assert.throws(() => recordInvoice(p, owner, q.id, "INV-002"), /Requires/);
+  assert.equal(revisionSummary(p).used, 1);
+});
+test("changed scope invalidates consent; related additions keep accepted rate and count once", () => {
+  const p = priced();
+  request(p, "first", "group");
+  proposeRoundQuote(p, owner, "group");
+  respondRoundQuote(p, client, p.quotes![0].id, true);
+  request(p, "second", "group");
+  assert.throws(
+    () => decide(p, owner, "first", "approved", "Approve changed group"),
+    /client must accept/,
+  );
+  setRevisionPolicy(
+    p,
+    owner,
+    0,
+    "One related group counts as a revision round.",
+    { rateMinor: 80000 },
+  );
+  proposeRoundQuote(p, owner, "group");
+  const q = p.quotes![1];
+  assert.equal(q.amountMinor, 50000);
+  respondRoundQuote(p, client, q.id, true);
+  decide(p, owner, "first", "approved", "First related change");
+  const second = p.requests.find((r) => r.id === "second")!;
+  second.baselineVersion = p.versions.length;
+  second.analysis.findings[0].currentQuote = p.requirements[0].text;
+  assert.throws(
+    () =>
+      decide(
+        p,
+        owner,
+        "second",
+        "approved",
+        "Changed comparison needs consent",
+      ),
+    /client must accept/,
+  );
+  proposeRoundQuote(p, owner, "group");
+  respondRoundQuote(p, client, p.quotes![2].id, true);
+  decide(p, owner, "second", "approved", "Second related change");
+  assert.equal(revisionSummary(p).used, 1);
+  assert.equal(p.quotes!.filter((q) => q.state === "accepted").length, 1);
+});
+test("decline blocks approval; free rounds and corrections cannot be quoted", () => {
+  const p = priced();
+  request(p, "paid", "paid-round");
+  proposeRoundQuote(p, owner, "paid-round");
+  respondRoundQuote(p, client, p.quotes![0].id, false);
+  assert.throws(
+    () => decide(p, owner, "paid", "approved", "Declined scope"),
+    /client must accept/,
+  );
+  request(p, "fix", "fix-round", "modification", "correction");
+  assert.throws(() => proposeRoundQuote(p, owner, "fix-round"), /No pending/);
+  decide(p, owner, "fix", "approved", "Original agreement correction");
+  const free = priced();
+  setRevisionPolicy(
+    free,
+    owner,
+    5,
+    "Five included rounds before additional charges.",
+  );
+  request(free, "free", "free-round");
+  assert.throws(() => proposeRoundQuote(free, owner, "free-round"), /included/);
+  decide(free, owner, "free", "approved", "Included round");
+  assert.equal(revisionSummary(free).remaining, 4);
+});
+test("only reviewers quote, client must be a member, stale consent and duplicate replies rejected", () => {
+  const p = priced();
+  request(p, "paid", "group");
+  assert.throws(() => proposeRoundQuote(p, editor, "group"), /role/);
+  assert.throws(
+    () =>
+      setRevisionPolicy(p, owner, 5, "Five rounds are included.", {
+        clientEmail: "stranger@example.com",
+      }),
+    /project access/,
+  );
+  proposeRoundQuote(p, owner, "group");
+  p.requests[0].analysis.findings[0].proposedText = "Updated scope wording";
+  assert.throws(
+    () => respondRoundQuote(p, client, p.quotes![0].id, true),
+    /outdated/,
+  );
+  proposeRoundQuote(p, owner, "group");
+  const q = p.quotes![1];
+  respondRoundQuote(p, client, q.id, true);
+  assert.throws(
+    () => respondRoundQuote(p, client, q.id, true),
+    /no longer pending/,
+  );
+});
+
+test("quote scope survives Firestore map ordering and request/finding ordering", () => {
+  const p = priced();
+  request(p, "paid", "group");
+  proposeRoundQuote(p, owner, "group");
+  const quote = p.quotes![0];
+  const r = p.requests[0];
+  r.analysis.findings = r.analysis.findings.map(
+    (f) => Object.fromEntries(Object.entries(f).reverse()) as Finding,
+  );
+  assert.equal(roundScope(p, "group"), quote.scope);
+  respondRoundQuote(p, client, quote.id, true);
+  decide(p, owner, "paid", "approved", "Stable persisted quote");
+});
+test("declined quotes can be reissued, invoiced rounds cannot expand, revoked clients cannot accept", () => {
+  const p = priced();
+  request(p, "paid", "group");
+  proposeRoundQuote(p, owner, "group");
+  respondRoundQuote(p, client, p.quotes![0].id, false);
+  proposeRoundQuote(p, owner, "group");
+  const q = p.quotes![1];
+  delete p.members[client.email];
+  assert.throws(() => respondRoundQuote(p, client, q.id, true), /not found/);
+  p.members[client.email] = "viewer";
+  respondRoundQuote(p, client, q.id, true);
+  decide(p, owner, "paid", "approved", "Approved priced scope");
+  recordInvoice(p, owner, q.id, "INV-002");
+  request(p, "extra", "group");
+  assert.throws(() => proposeRoundQuote(p, owner, "group"), /invoiced round/);
+  assert.throws(
+    () => decide(p, owner, "extra", "approved", "Unquoted expansion"),
+    /client must accept/,
+  );
+  assert.equal(q.amountMinor, 50000);
 });

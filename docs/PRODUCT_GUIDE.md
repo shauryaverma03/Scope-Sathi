@@ -63,3 +63,7 @@ This is a template preview, not inbox delivery evidence. In-app notifications wo
 Reopen the tour from the interface. Each workspace tab has a relevant empty state. Account and connection settings are available before creating a project. Loading transitions respect reduced-motion preferences.
 
 No OCR, meeting recording, Jira synchronization, automatic billing, automatic approvals or code modification is implemented. Live model accuracy and production capacity require separate evaluation.
+
+## Estimate additional work
+
+The cost meter in Overview, Change requests and Settings shows included rounds, pending extra work and quote totals. Owners set currency, price and the designated client in Revision policy after accepted project access. Reviewers propose priced extra rounds; the client accepts or declines before scope approval. Owners can record an existing invoice reference after approval. See [the pricing guide](REVISION_PRICING.md).

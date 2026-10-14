@@ -42,6 +42,9 @@ import {
   saveProposal,
   saveIntake,
   setRevisionPolicy,
+  proposeRoundQuote,
+  respondRoundQuote,
+  recordInvoice,
   now,
 } from "./domain.js";
 import { checkFirebaseSession } from "./auth.js";
@@ -396,12 +399,52 @@ app.post("/api/projects/:id/revision-policy", async (req, res) => {
     .object({
       revision: Revision,
       includedRounds: z.number().int().min(0).max(1000).nullable(),
+      currency: z.enum(["INR", "USD", "EUR", "GBP"]).default("INR"),
+      rateMinor: z.number().int().min(0).max(100000000).default(0),
+      clientEmail: z.union([z.email(), z.literal("")]).default(""),
       definition: z.string().trim().min(20).max(1000),
     })
     .parse(req.body);
   res.json(
     await store.update(id(req), actor(res), v.revision, (p) =>
-      setRevisionPolicy(p, actor(res), v.includedRounds, v.definition),
+      setRevisionPolicy(p, actor(res), v.includedRounds, v.definition, {
+        currency: v.currency,
+        rateMinor: v.rateMinor,
+        clientEmail: v.clientEmail.toLowerCase(),
+      }),
+    ),
+  );
+});
+app.post("/api/projects/:id/quotes", async (req, res) => {
+  const v = z
+    .object({ revision: Revision, roundId: z.string().min(1).max(60) })
+    .parse(req.body);
+  res.json(
+    await store.update(id(req), actor(res), v.revision, (p) =>
+      proposeRoundQuote(p, actor(res), v.roundId),
+    ),
+  );
+});
+app.post("/api/projects/:id/quotes/:quoteId/respond", async (req, res) => {
+  const v = z
+    .object({ revision: Revision, accept: z.boolean() })
+    .parse(req.body);
+  res.json(
+    await store.update(id(req), actor(res), v.revision, (p) =>
+      respondRoundQuote(p, actor(res), String(req.params.quoteId), v.accept),
+    ),
+  );
+});
+app.post("/api/projects/:id/quotes/:quoteId/invoice", async (req, res) => {
+  const v = z
+    .object({
+      revision: Revision,
+      reference: z.string().trim().min(3).max(150),
+    })
+    .parse(req.body);
+  res.json(
+    await store.update(id(req), actor(res), v.revision, (p) =>
+      recordInvoice(p, actor(res), String(req.params.quoteId), v.reference),
     ),
   );
 });
@@ -655,7 +698,16 @@ app.post("/api/projects/:id/members", invitationLimit, async (req, res) => {
   const p = await store.get(id(req), actor(res));
   if (p.ownerId !== actor(res).uid)
     throw new AppError(403, "Only the owner can invite members.");
-  res.json(await invite(p.id, actor(res), v.revision, v.email, v.role, v.allowUnregistered));
+  res.json(
+    await invite(
+      p.id,
+      actor(res),
+      v.revision,
+      v.email,
+      v.role,
+      v.allowUnregistered,
+    ),
+  );
 });
 app.get("/api/projects/:id/invitations", async (req, res) => {
   const p = await store.get(id(req), actor(res));
@@ -719,7 +771,12 @@ app.use(
   ) => {
     if (res.headersSent) return _next(err);
     if (err?.type === "entity.parse.failed")
-      return res.status(400).json({ error: "Invalid JSON request.", requestId: res.locals.requestId });
+      return res
+        .status(400)
+        .json({
+          error: "Invalid JSON request.",
+          requestId: res.locals.requestId,
+        });
     if (err instanceof z.ZodError)
       return res.status(400).json({
         error: "Please check your input.",

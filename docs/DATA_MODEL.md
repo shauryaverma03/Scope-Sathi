@@ -48,3 +48,7 @@ Local mode saves projects.json under the configured data directory; firebase loc
 Firestore is selected explicitly. Failed cloud writes are errors, never silent local successes. Migration previews owned local projects and a canonical fingerprint. Import verifies the preview, preserves IDs/history, rejects conflicting IDs and recognizes identical imports. Local originals remain until independently verified; migration is not automatic.
 
 Exports are user-facing snapshots. Project deletion removes the project aggregate; it is not a guaranteed purge of separate notifications, outbox records, infrastructure backups or logs. A complete retention/deletion policy remains deployment work.
+
+## Round quote snapshots
+
+The project aggregate stores optional quotes with IDs, round IDs, integer minor-unit amounts, currency, client email, canonical serialized scope, request IDs and decision timestamps. Accepted prices remain fixed across policy changes; changed scope requires a superseding quote and fresh consent. Firestore map ordering does not invalidate canonical comparisons. Legacy projects normalize to an empty quote list. Quotes, invoice references and policy decisions appear in project events and exports.
