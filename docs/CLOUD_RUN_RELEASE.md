@@ -38,7 +38,7 @@ The known scopesathi installation has a safe default public origin in code for g
 
 ![Release workflow: test and build locally, push main, Cloud Build packages and deploys, verify revision and test the live application](images/release-workflow.png)
 
-*Code deployment and cloud configuration are separate. Secrets, IAM and Scheduler still need their own setup; the Docker build does not run the test suite.*
+*Code deployment and cloud configuration are separate. Secrets, IAM and Scheduler still need their own setup; the Docker build requires local automated tests and the production build to pass.*
 
 1. Review local changes and run `npm run build` and the relevant tests.
 2. Commit and push to `main` yourself. Never stage `.env`, `.data`, private keys or password files.
@@ -89,7 +89,7 @@ Disable sending with `EMAIL_ENABLED=false` and pause the Scheduler job if needed
 
 Keep `scopesathi-api-112358672382.europe-west1.run.app` in Firebase Authentication → Settings → Authorized domains. For a custom domain, add the new hostname and change `APP_PUBLIC_URL`; update the Scheduler target and OIDC audience together.
 
-The owner created a ₹200 monthly alerts-only budget and ₹100 Cloud Run and Gemini API caps. Verify the actual budget scopes/status in Billing. **Vertex AI/Agent Platform needs its own cap**: the Gemini Developer API cap does not cover it. Cloud Build, Artifact Registry, Firestore, Secret Manager, Scheduler and networking are separate potential costs. Alerts do not stop usage; spend-cap enforcement can lag and can interrupt the demo. Neither a ₹1,000 prepayment nor maximum one instance is a monetary ceiling.
+Configure account-appropriate alert budgets and eligible service caps, and verify their scopes/status in Billing. **Vertex AI/Agent Platform needs its own cap**: the Gemini Developer API cap does not cover it. Cloud Build, Artifact Registry, Firestore, Secret Manager, Scheduler and networking are separate potential costs. Alerts do not stop usage; spend-cap enforcement can lag and can interrupt the demo. Neither prepaid credit nor maximum one instance is a monetary ceiling.
 
 ## Release verification
 

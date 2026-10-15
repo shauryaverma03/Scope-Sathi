@@ -8,6 +8,10 @@ Deployment links updated on **16 October 2026**. The owner verified public loadi
 
 | Guide | Contents |
 | --- | --- |
+| [Owner release steps](OWNER_RELEASE_STEPS.md) | Remaining deployment, account setup and manual checks |
+| [Hackathon QA report](HACKATHON_QA_REPORT.md) | Executed checks, developer fixes and open release blockers |
+| [AI evaluation](AI_EVALUATION.md) | Synthetic dataset, held-out scoring and blocked live results |
+| [Submission walkthrough](SUBMISSION_WALKTHROUGH.md) | Three-minute recording script and release checklist |
 | [Product guide](PRODUCT_GUIDE.md) | Illustrated intake, approvals, revision rounds, tasks and onboarding |
 | [Deployment decisions](DEPLOYMENT_DECISIONS.md) | Every cloud setting, its reason, tradeoffs, costs, verification and growth plan |
 | [Architecture](ARCHITECTURE.md) | Components, trust boundaries, sequences and tradeoffs |

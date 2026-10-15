@@ -32,7 +32,18 @@ export const AnalysisSchema = z.object({
   findings: z.array(FindingSchema).min(1).max(15),
 });
 export type Finding = z.infer<typeof FindingSchema>;
-export type Analysis = z.infer<typeof AnalysisSchema>;
+export type ModelRun = {
+  provider: "vertex" | "developer-api";
+  model: string;
+  promptVersion: string;
+  schemaVersion: string;
+  completedAt: string;
+  durationMs: number;
+  inputTokens?: number;
+  outputTokens?: number;
+};
+// Assigned by the server after validation; never requested from the model.
+export type Analysis = z.infer<typeof AnalysisSchema> & { run?: ModelRun };
 export const IntakeSchema = z.object({
   goal: z.string().trim().max(2000).default(""),
   users: z.string().trim().max(1500).default(""),
@@ -164,6 +175,7 @@ export type ChangeRequest = {
   reviewNote?: string;
   decidedBy?: string;
   decidedAt?: string;
+  resultVersion?: number;
 };
 export type Event = {
   id: string;
@@ -276,6 +288,7 @@ export function money(minor: number, currency: string) {
 }
 
 export type ExtractionResult = {
+  run?: ModelRun;
   requirements: Requirement[];
   summary: string;
   questions: string[];

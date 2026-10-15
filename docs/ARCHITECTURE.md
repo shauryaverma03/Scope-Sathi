@@ -54,7 +54,10 @@ AI generation occurs outside transactions to avoid repeated calls during transac
 | server/index.ts, protection.ts | HTTP routes, limits and lifecycle |
 | server/domain.ts | Authorization and approval invariants |
 | server/store.ts, database.ts, migration.ts | Storage, connection verification and explicit migration |
-| server/ai.ts | Structured generation and manual/sample modes |
+| server/ai.ts, ai-observability.ts, ai-errors.ts | Structured generation, server-owned provenance and actionable failure handling |
+| shared/review.ts, src/ReviewInsights.tsx | Historical evidence selection, bounded diff, task traceability and client report preview |
+| src/visible-polling.ts | Visibility-aware notification polling and lifecycle cleanup |
+| eval/, scripts/evaluate-ai.ts | Synthetic project-level evaluation splits, scoring and explicit live-run tooling |
 | server/invitations.ts, email.ts | Invitation transactions and outbox |
 | server/mail-trigger.ts | Authenticated Google OIDC mail batch endpoint |
 | shared/deployment.ts | Public deployment metadata; no credentials |

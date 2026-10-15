@@ -13,6 +13,14 @@ React · TypeScript · Firebase · Firestore · Gmail · Optional Gemini
 
 *Actual application screenshot. Workspace screenshots below use demonstration data; see [image provenance](docs/images/README.md).*
 
+## Hackathon review and verification
+
+The current upgrade adds a client change report with print-to-PDF, evidence wording differences, saved change traceability, next-step guidance and a public worked example. AI proposes; verified user roles and human approval control changes.
+
+**Start here:** [QA report and fixes](docs/HACKATHON_QA_REPORT.md) · [AI evaluation](docs/AI_EVALUATION.md) · [Three-minute demo script](docs/SUBMISSION_WALKTHROUGH.md).
+
+Local automated checks and disposable Firestore workflows pass. Latest local model probes returned provider 402/403, so no new accuracy claim is made. Public cloud health/Firestore checks pass; authenticated hosted AI, SMTP and interactive browser/printing checks remain release work. The worked example is labeled illustration, not live inference. A recorded demo link will be added only after recording.
+
 ## Documentation
 
 For the deployed service and hosted email setup, see **[Cloud Run release guide](docs/CLOUD_RUN_RELEASE.md)**. For the reasoning behind every cloud setting, see **[Deployment decisions: what, why, and how](docs/DEPLOYMENT_DECISIONS.md)**.
@@ -120,7 +128,7 @@ The public prototype uses **Cloud Run automatic scaling with minimum 0 and maxim
 | Attached runtime account and secret references | Avoid shipping long-lived Admin keys or SMTP passwords in Git | Cloud IAM and secrets require separate configuration |
 | Authenticated scheduled email batches | Process outbox work while the request has CPU | Scheduler and SMTP setup still required; delivery is not instantaneous or exactly once |
 
-The owner configured an overall ₹200 alerts-only budget and ₹100 caps for Cloud Run and Gemini API. **Vertex AI requires its own service cap.** Alerts, service caps, rate limits and prepaid credit do not form a guaranteed total spending ceiling. Compute, AI, storage, builds and other services can contribute costs.
+Operators should configure billing alerts and eligible service-specific spending controls for their own account. **Vertex AI requires its own service cap.** Alerts, service caps, rate limits and prepaid credit do not form a guaranteed total spending ceiling. Compute, AI, storage, builds and other services can contribute costs.
 
 Read the **[complete deployment rationale](docs/DEPLOYMENT_DECISIONS.md)** for settings, architecture diagrams, role boundaries, cold starts, cost monitoring, CI/CD, rollback and remaining limitations. Read the **[release guide](docs/CLOUD_RUN_RELEASE.md)** for console setup steps. Deployment screenshots establish public loading and sign-in; they do not establish live SMTP delivery, a particular current instance count, or exhaustive model accuracy.
 

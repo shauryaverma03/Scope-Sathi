@@ -1,0 +1,35 @@
+{
+  "checkedAt": "2026-10-15T21:54:43.940946+00:00",
+  "scope": "Uncommitted local release; not proof of deployed revision",
+  "automated": {
+    "tests": 88,
+    "pass": 88,
+    "fail": 0,
+    "skipped": 0
+  },
+  "productionBuild": "pass",
+  "productionDependencyAudit": {
+    "info": 0,
+    "low": 0,
+    "moderate": 0,
+    "high": 0,
+    "critical": 0,
+    "total": 0
+  },
+  "publicDeployment": {
+    "health": "ok",
+    "mode": "google",
+    "storage": "firestore",
+    "databaseState": "connected",
+    "ai": "vertex",
+    "emailConfigured": false
+  },
+  "liveModels": {
+    "developerApi": "HTTP 402; no validated response",
+    "localAdcVertex": "HTTP 403; does not verify the Cloud Run runtime identity",
+    "semanticAccuracy": null
+  },
+  "interactiveBrowser": "not executed; manual release checks remain",
+  "emailSending": "not executed",
+  "liveFirestore": "pass; disposable fixture cleaned up; original request result v2 and amendment result v3 verified in a fresh process"
+}

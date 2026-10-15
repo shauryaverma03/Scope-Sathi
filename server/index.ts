@@ -557,6 +557,8 @@ app.post(
     if (!r) throw new AppError(404, "Request not found.");
     if (r.status !== "pending")
       throw new AppError(409, "Only pending requests can be reanalysed.");
+    if (p.revision !== v.revision)
+      throw new AppError(409, "Refresh this project before reanalysing.");
     const analysis = await analyse(p, r.text, liveAI, mode === "demo");
     res.json(
       await store.update(p.id, actor(res), v.revision, (next) => {

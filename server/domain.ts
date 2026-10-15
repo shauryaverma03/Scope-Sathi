@@ -327,6 +327,7 @@ export function decide(
         approvedBy: a.email,
         reason: note,
       });
+      r.resultVersion = p.versions.length;
       for (const t of p.tasks)
         if (affected.has(t.id)) t.status = "needs_review";
     }

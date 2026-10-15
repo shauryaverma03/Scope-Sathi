@@ -1,5 +1,7 @@
 # ScopeSathi QA audit — 15 October 2026
 
+Latest improvement pass: [16 October hackathon QA report](HACKATHON_QA_REPORT.md) records 88 tests, current service probes, developer fixes and open release checks. Entries below describe earlier QA snapshots.
+
 [Documentation home](README.md)
 
 ## Result and limits

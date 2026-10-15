@@ -42,6 +42,8 @@ if (process.argv[2] === "--read") {
   assert.equal(p.versions.length, 3);
   assert.equal(p.tasks[0].status, "needs_review");
   assert.equal(p.requests[0].status, "approved");
+  assert.equal(p.requests.find((r) => r.baselineVersion === 1)?.resultVersion, 2);
+  assert.equal(p.requests.find((r) => r.baselineVersion === 2)?.resultVersion, 3);
   assert.equal(p.quotes?.[0].state, "accepted");
   assert.equal(p.quotes?.[0].amountMinor, 50000);
   assert.equal(p.quotes?.[0].invoiceReference, "VALIDATION-001");

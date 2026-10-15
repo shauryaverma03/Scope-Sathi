@@ -1,5 +1,11 @@
 # Validation record
 
+## Hackathon improvement QA — 16 October 2026
+
+**88 automated tests passed**, production build passed, and the production dependency audit reported zero known vulnerabilities. The disposable Firestore workflow passed, including fresh-process persistence and recorded result-version verification. New regressions cover client report privacy, historical source selection, wording diffs, stale consent, model provenance, notification polling and reanalysis preflight.
+
+Public live health/Firestore checks passed; hosted email reports unconfigured. Local model evaluation was blocked by Developer API 402 and local ADC Vertex 403. No semantic accuracy result is claimed. Interactive browser/printing checks and authenticated hosted model verification remain open. This source change is not deployed by the test run. See [QA report](HACKATHON_QA_REPORT.md), [evaluation](AI_EVALUATION.md) and [owner steps](OWNER_RELEASE_STEPS.md).
+
 ## Deployment update — 16 October 2026
 
 Owner screenshots confirm successful Cloud Build deployment, public page loading and Google sign-in. The current release updates email links and adds the OIDC-authenticated scheduled-mail endpoint. Local build and focused mail/UI tests pass; live SMTP, Scheduler execution and Vertex analysis were not tested in this update. See [release setup](CLOUD_RUN_RELEASE.md).

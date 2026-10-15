@@ -81,3 +81,13 @@ Approved scope is preserved history, so it is changed through **Propose edit** o
 Version comparison starts with the latest change, hides unchanged clauses by default and uses a bounded region. A single version explains that there is nothing to compare yet. Revision-cost details are available in a collapsible panel so they do not hide the section's main action.
 
 Existing saved projects and approved baselines are not automatically rewritten by these UI improvements.
+
+## Review, traceability and client report
+
+Overview highlights the next useful step. Expand **Explore request-to-task traceability** to follow saved requests through requirements, decisions and currently linked work. New approved scope changes record their resulting version; older records are not assigned invented result versions.
+
+A request review shows exact passages and a bounded wording diff with deletions and additions. Task impact includes explicit requirement links even if the model omitted task IDs. Historical views use the request baseline, not the latest amended clause. Matching text is evidence of presence, not proof of correct interpretation.
+
+Choose **Preview client report** to inspect the saved request, wording, evidence, questions, decision and round quote. Unsaved proposal edits are excluded. Decision notes are opt-in; member lists, invoice references and internal activity are omitted. **Print / save PDF** uses the browser print dialog; inspect pages before sharing. This does not email a report or generate an invoice.
+
+The public home page offers **Explore a worked example**, a five-step illustration requiring no sign-in and saving no data. It is separate from live AI and does not create a project. Notification polling pauses while the tab is hidden.

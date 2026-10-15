@@ -3,6 +3,12 @@ import {
   EnhancedHistory,
   TaskPlanPanel,
 } from "./WorkspaceViews";
+import {
+  FindingImpact,
+  NextAction,
+  ReportPreview,
+  Traceability,
+} from "./ReviewInsights";
 import type { ExtractionResult } from "../shared/model";
 import { NotificationInbox, InvitationList } from "./Notifications";
 import {
@@ -570,6 +576,7 @@ function App() {
                     {tab === "overview" && (
                       <Overview
                         p={p}
+                        email={email}
                         setTab={setTab}
                         open={setReviewId}
                         newRequest={() => setModal("request")}
@@ -883,12 +890,14 @@ function GoogleMark() {
 }
 function Overview({
   p,
+  email,
   setTab,
   open,
   newRequest,
   canEdit,
 }: {
   p: Project;
+  email: string;
   setTab: (t: Tab) => void;
   open: (id: string) => void;
   newRequest: () => void;
@@ -898,6 +907,7 @@ function Overview({
     affected = p.tasks.filter((t) => t.status === "needs_review");
   return (
     <>
+      <NextAction p={p} email={email} navigate={(next) => setTab(next as Tab)} open={open} />
       <RequestSummary p={p} />
       <section className="setup-checklist">
         <button onClick={() => setTab("baseline")}>
@@ -913,6 +923,10 @@ function Overview({
           {p.revisionPolicy.includedRounds !== null ? "✓" : "4"} Revision policy
         </button>
       </section>
+      <details className="panel traceability-disclosure">
+        <summary>Explore request-to-task traceability</summary>
+        <Traceability p={p} open={open} />
+      </details>
       <div className="stats">
         <Stat
           label="Approved requirements"
@@ -1935,6 +1949,7 @@ export function Review({
   reanalyse: () => void;
   save: (findings: Finding[], category: string, roundId: string) => void;
 }) {
+  const [reportOpen, setReportOpen] = useState(false);
   const [findings, setFindings] = useState<Finding[]>(
     structuredClone(r.analysis.findings),
   );
@@ -1996,6 +2011,26 @@ export function Review({
         </Badge>
         <p>{r.analysis.summary}</p>
         <small>Analysis: {r.engine}</small>
+        {r.analysis.run && (
+          <details className="analysis-provenance">
+            <summary>Analysis provenance</summary>
+            <p className="helper">
+              Model run: {r.analysis.run.provider} · {r.analysis.run.model} ·{" "}
+              {(r.analysis.run.durationMs / 1000).toFixed(1)}s · prompt{" "}
+              {r.analysis.run.promptVersion}. Generated{" "}
+              {new Date(r.analysis.run.completedAt).toLocaleString()}. Metadata
+              describes generation, not later reviewer edits.
+            </p>
+            <p className="helper">
+              Input tokens: {r.analysis.run.inputTokens ?? "not reported"};
+              output tokens: {r.analysis.run.outputTokens ?? "not reported"}.
+              Usage is not a price estimate or confidence score.
+            </p>
+          </details>
+        )}
+        <button className="button" onClick={() => setReportOpen(true)}>
+          Preview client report
+        </button>
         <p className="helper">
           Category:{" "}
           {r.category === "correction"
@@ -2007,6 +2042,14 @@ export function Review({
           <p>Separate agreement: {r.separateAgreement}</p>
         )}
       </div>
+      {reportOpen && (
+        <ReportPreview
+          key={r.id}
+          p={p}
+          r={r}
+          close={() => setReportOpen(false)}
+        />
+      )}
       {stale && r.status === "pending" && (
         <div className="info warning">
           <AlertTriangle size={18} />
@@ -2125,6 +2168,7 @@ export function Review({
               <blockquote>{f.requestQuote}</blockquote>
             </div>
           </div>
+          <FindingImpact p={p} r={r} f={f} locate />
           {editing ? (
             <div className="proposal-edit">
               <label>

@@ -2,6 +2,8 @@
 
 [Documentation home](README.md)
 
+Latest evaluation and provider-access status: [AI evaluation](AI_EVALUATION.md) and [QA report](HACKATHON_QA_REPORT.md). Historical smoke checks below are not current deployed-quality evidence.
+
 ## Extraction
 
 A pasted/extracted brief enters server/ai.ts. Configured Gemini returns structured requirements with stable IDs, editable wording and contiguous source quotes. Zod validates the response, then domain validation checks quotes against the actual brief.
@@ -70,3 +72,7 @@ References: [structured output schema support](https://ai.google.dev/gemini-api/
 ## Hosted configuration boundary
 
 The selected Vertex endpoint (`global`) is independent of the Cloud Run compute region (`europe-west1`). The local Developer API key is not required for google-mode ADC model calls. Default configured model text is not proof of live model access; evaluate the deployed workflow after IAM/API/quota changes. [Deployment rationale](DEPLOYMENT_DECISIONS.md#ai-request-lifecycle) explains the deadline layers and cost boundaries.
+
+## Run provenance and context precedence
+
+Successful generation returns server-owned provider, configured model, prompt/schema version, timestamp, duration and available input/output token counts. Change analyses retain this metadata through reviewer edits; it describes the original generation, not a confidence score or proof of the final edited interpretation. Extraction metadata is returned with its draft; it is not a separately persisted baseline-run archive. Current approved requirements explicitly outrank superseded obligations in the historical original brief. See the synthetic amended-booking fixture and evaluation limitations.

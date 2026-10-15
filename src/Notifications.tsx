@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Bell, Check, X, RefreshCw, Mail } from "lucide-react";
 import { api } from "./api";
+import { visiblePolling } from "./visible-polling";
 import type { Project, Invitation, Config } from "../shared/model";
 type Notice = {
   id: string;
@@ -44,21 +45,21 @@ export function NotificationInbox({
     }
   }
   useEffect(() => {
-    let active = true;
-    api<Notice[]>("/notifications")
-      .then((rows) => {
-        if (active) setItems(rows);
-      })
-      .catch((e) => {
-        if (active) setError(e.message);
-      });
-    const t = setInterval(() => {
-      if (active) void load();
-    }, 45000);
-    return () => {
-      active = false;
-      clearInterval(t);
-    };
+    setItems([]);
+    setError("");
+    const polling = visiblePolling(
+      document,
+      () => api<Notice[]>("/notifications"),
+      (rows) => {
+        setItems(rows);
+        setError("");
+      },
+      (error) =>
+        setError(
+          error instanceof Error ? error.message : "Notifications unavailable.",
+        ),
+    );
+    return polling.stop;
   }, [email]);
   const count = items.filter(
     (n) => n.kind === "invitation" && n.state === "pending" && !n.expired,

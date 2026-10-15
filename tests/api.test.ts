@@ -80,6 +80,7 @@ test("complete API workflow and concurrent revision protection", async () => {
     })
   ).data;
   assert.equal(p.versions.length, 2);
+  assert.equal(p.requests[0].resultVersion, 2);
   assert.equal(p.tasks[0].status, "needs_review");
   const duplicate = await req(
     `/projects/${p.id}/requests/${r.id}/decision`,
@@ -99,6 +100,26 @@ test("complete API workflow and concurrent revision protection", async () => {
   assert.deepEqual(responses.map((r) => r.status).sort(), [200, 409]);
   const persisted = (await req(`/projects/${p.id}`)).data;
   assert.equal(persisted.tasks.length, 4);
+});
+test("stale reanalysis is rejected by preflight before model generation", async () => {
+  let p = (await req("/sample", "POST", {})).data as Project;
+  p = (
+    await req(`/projects/${p.id}/requests`, "POST", {
+      revision: p.revision,
+      title: "Manual change",
+      source: "Synthetic QA",
+      text: "Please add a saved wish list.",
+      method: "local",
+    })
+  ).data;
+  const response = await req(
+    `/projects/${p.id}/requests/${p.requests[0].id}/reanalyse`,
+    "POST",
+    { revision: p.revision - 1 },
+  );
+  assert.equal(response.status, 409);
+  assert.match(response.data.error, /Refresh this project before reanalysing/);
+  assert.equal((await req(`/projects/${p.id}`)).data.revision, p.revision);
 });
 test("new project, extraction, baseline and text upload", async () => {
   const p = (

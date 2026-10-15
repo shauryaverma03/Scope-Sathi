@@ -18,7 +18,8 @@
     "test:firestore": "node --import tsx tests/firestore.live.ts",
     "email:configure": "node scripts/configure-email.mjs",
     "test:invitations": "node --import tsx tests/invitations.live.ts",
-    "ai:configure": "node --import tsx scripts/configure-gemini.mjs"
+    "ai:configure": "node --import tsx scripts/configure-gemini.mjs",
+    "eval:ai": "node --import tsx scripts/evaluate-ai.ts"
   },
   "dependencies": {
     "@google/genai": "^2.28.0",

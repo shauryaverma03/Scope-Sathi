@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { ArrowRight, Check, ShieldCheck, X, Compass } from "lucide-react";
 import { createPortal } from "react-dom";
+import { ExampleWalkthrough } from "./ExampleWalkthrough";
 
 function HelpOverlay({ children }: { children: React.ReactNode }) {
   return typeof document === "undefined"
@@ -253,6 +254,7 @@ export function Home({
   const [auth, setAuth] = useState<"signin" | "signup" | null>(null),
     [tour, setTour] = useState(false),
     [remember, setRemember] = useState(false);
+  const [example, setExample] = useState(false);
   return (
     <div className="public-home">
       <header className="home-nav">
@@ -284,8 +286,9 @@ export function Home({
               <em>Fewer surprises.</em>
             </h1>
             <p className="home-lead">
-              Turn client conversations into shared understanding. Keep your
-              agreed scope protected while your team decides what comes next.
+              For freelancers and small software teams: compare client requests
+              with the agreed scope, resolve questions, and record approved
+              changes.
             </p>
             <div className="home-actions">
               <button
@@ -296,6 +299,9 @@ export function Home({
               </button>
               <button className="button" onClick={() => setTour(true)}>
                 Show me how it works
+              </button>
+              <button className="text-button" onClick={() => setExample(true)}>
+                Explore a worked example
               </button>
             </div>
             <p className="home-trust">
@@ -428,6 +434,11 @@ export function Home({
         </span>
         <FirstVisit />
       </footer>
+      {example && (
+        <HelpOverlay>
+          <ExampleWalkthrough close={() => setExample(false)} />
+        </HelpOverlay>
+      )}
       {auth && (
         <div className="tour-backdrop">
           <section

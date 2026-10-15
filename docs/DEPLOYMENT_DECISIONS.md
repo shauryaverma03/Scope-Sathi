@@ -144,10 +144,10 @@ The proposed schedule is every five minutes, processing at most one eligible job
 
 | Control | Scope | What remains possible |
 | --- | --- | --- |
-| ₹1,000 prepayment | Credit recorded in the owner's billing account | Not a monthly fee or a guaranteed maximum bill |
-| ₹200 monthly alert | Saved alerts-only billing budget; verify its current filters | Sends alerts; does not pause usage |
-| ₹100 Cloud Run cap | Saved service cap; verify project/service/status | Can interrupt the website; delayed enforcement can allow overage |
-| ₹100 Gemini API cap | Saved Developer API cap; verify key's project | Does not cover Vertex AI |
+| Prepaid credit | Billing-account credit, if applicable | Not a monthly fee or a guaranteed maximum bill |
+| Monthly alert budget | Operator-configured alerts-only budget; verify filters | Sends alerts; does not pause usage |
+| Cloud Run cap | Operator-configured service cap; verify project/service/status | Can interrupt the website; delayed enforcement can allow overage |
+| Gemini API cap | Operator-configured Developer API cap; verify its project | Does not cover Vertex AI |
 | Vertex AI / Agent Platform cap | Separate setup still requires confirmation | Model usage is not covered by the Developer API cap |
 | Minimum zero / maximum one | Limits idle reservation and compute scale | Continuous requests can still incur compute charges |
 | Concurrency and rate limits | Controls simultaneous work and request frequency | Does not cap tokens, database operations or total daily money |
@@ -170,9 +170,9 @@ Budget alerts, spend caps, credit balances and instance limits have different me
 
 ![Release workflow: test and build locally, push main, Cloud Build packages and deploys, verify revision and test the live application](images/release-workflow.png)
 
-*Code deployment and cloud configuration are separate. Secrets, IAM and Scheduler still need their own setup; the Docker build does not run the test suite.*
+*Code deployment and cloud configuration are separate. Secrets, IAM and Scheduler still need their own setup; the Docker build requires local automated tests and the production build to pass.*
 
-Pushes to `main` trigger Cloud Build, Docker packaging, Artifact Registry publication and deployment of a new Cloud Run revision. This is continuous deployment, not a multi-environment promotion pipeline. `npm run build` type-checks/bundles in the Dockerfile; it does **not** run the test suite there. Run relevant tests before pushing or add a dedicated CI test step. GitHub does not synchronize local `.env` or secret values.
+Pushes to `main` trigger Cloud Build, Docker packaging, Artifact Registry publication and deployment of a new Cloud Run revision. This is continuous deployment, not a multi-environment promotion pipeline. The Dockerfile runs `npm test` before type-checking/bundling, so test failures stop image packaging. The GitHub verification workflow also runs tests and the production build. Run relevant checks before pushing; neither gate establishes live cloud IAM or browser behavior. GitHub does not synchronize local `.env` or secret values.
 
 For an incident, record the failing action and request ID, inspect build/runtime logs, and preserve the user's input. Check whether the problem is auth, stale revision, quota, spending cap, model availability or database access before retrying. For an application regression, use a verified earlier application revision through Cloud Run traffic management; do not route traffic to the initial placeholder image. Rollback does not undo Firestore changes, queued mail or secret changes. Schema compatibility must be checked.
 

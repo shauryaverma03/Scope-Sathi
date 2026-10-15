@@ -2,7 +2,7 @@
 
 [Documentation home](README.md) · Source of truth: server/index.ts
 
-All paths below start with /api. Google modes require Authorization: Bearer <Firebase ID token>, except health and config. Demo uses a loopback-only actor. JSON request bodies are capped at 350 KB. Do not embed tokens in URLs.
+All paths below start with /api. Google modes require Authorization: Bearer <Firebase ID token>, except health and config. The internal mail-drain endpoint separately verifies Google service-account OIDC, not a Firebase user token. Demo uses a loopback-only actor. JSON request bodies are capped at 350 KB. Do not embed tokens in URLs.
 
 ## Routes
 
@@ -97,3 +97,9 @@ POST /api/projects/:id/requests accepts optional method: ai (default) or local. 
 ## Scheduled email endpoint
 
 `POST /api/internal/mail/drain` is separate from user APIs. It requires a Google-signed OIDC token for the public-origin audience and the exact verified email in `MAIL_TRIGGER_SERVICE_ACCOUNT`; Firebase user tokens cannot authorize it. Local/unconfigured mode returns 503, missing token 401, invalid identity 403. A valid configured invocation awaits a single-job batch. A 200 means the scan completed, not inbox delivery. Queue/setup or concurrent-worker failures return 503. Enable only after following [hosted mail setup](CLOUD_RUN_RELEASE.md).
+
+## Analysis provenance and result versions
+
+Successful model-generated analysis can include an optional server-owned `run` object: `provider`, configured `model`, `promptVersion`, `schemaVersion`, `completedAt`, `durationMs` and provider-reported `inputTokens`/`outputTokens` when available. Model-supplied provenance is not trusted. Proposal edits retain original run metadata; it does not certify the edited interpretation. Manual/prepared analyses do not gain fabricated model-run metadata.
+
+New approved scope changes record `resultVersion` on the request. Existing historical requests may lack it; callers must not infer a result version from array position. Reanalysis rejects an outdated project revision before model generation and still validates the revision transactionally on save. Client report rendering uses existing authorized project data; it introduces no public project/report endpoint.
