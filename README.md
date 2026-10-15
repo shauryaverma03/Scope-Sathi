@@ -6,7 +6,7 @@
 
 React · TypeScript · Firebase · Firestore · Gmail · Optional Gemini
 
-[Features](#features) · [Get started](#get-started) · [Documentation](docs/README.md) · [Architecture](docs/ARCHITECTURE.md) · [Google stack](#google-stack)
+[Live app](https://scopesathi-api-112358672382.europe-west1.run.app) · [Features](#features) · [Get started](#get-started) · [Documentation](docs/README.md) · [Architecture](docs/ARCHITECTURE.md) · [Google stack](#google-stack)
 </div>
 
 ![ScopeSathi public home page](docs/images/home.jpg)
@@ -14,6 +14,8 @@ React · TypeScript · Firebase · Firestore · Gmail · Optional Gemini
 *Actual application screenshot. Workspace screenshots below use demonstration data; see [image provenance](docs/images/README.md).*
 
 ## Documentation
+
+For the deployed service and hosted email setup, see **[Cloud Run release guide](docs/CLOUD_RUN_RELEASE.md)**.
 
 Start at the **[documentation hub](docs/README.md)** for the complete project guide. See the **[QA audit and bug fixes](docs/QA_REPORT.md)** for current evidence and remaining release checks.
 
@@ -92,11 +94,12 @@ Invalid email formats are rejected. A correctly formatted address cannot be guar
 |---|---|---|
 | **Firebase Authentication** | Google sign-in and verified identity | Connected |
 | **Cloud Firestore** | Projects, briefs, requirements, versions, tasks, permissions, history and mail queue | Persistence verified |
-| **Gmail SMTP** | Styled welcome and invitation emails | Local-test delivery enabled and tested |
+| **Gmail SMTP** | Styled welcome and invitation emails | Local checks exist; hosted secret and authenticated Scheduler setup required |
 | **Google Cloud project** | Firebase infrastructure context | Existing project: `scopesathi` |
 | **Google Antigravity** | Development tool | Included in the project toolset |
 | **Gemini** | Optional extraction and change analysis | Flash-Lite extraction and change-review smoke checks pass; human review required |
-| **Cloud Run / Firebase Hosting** | Optional public deployment | Configuration supplied; not deployed |
+| **Cloud Run** | Serves the React app and backend API | Owner verified public loading and Google sign-in on 15 October 2026 |
+| **Firebase Hosting** | Optional alternate frontend address | Rewrite points to the existing Cloud Run service; not verified as deployed |
 
 The graphic illustrates the stack; it is not a Google endorsement. Each installation's configuration determines available capabilities. Manual review works without Gemini; prepared demo examples are not live AI.
 
@@ -143,10 +146,11 @@ Private values belong in ignored **.env** or a deployment secret store. Commit *
 | `GEMINI_API_KEY`, `GEMINI_MODEL` | Optional backend AI settings |
 | `SMTP_USER`, `SMTP_PASS`, `EMAIL_FROM` | Backend sender configuration |
 | `EMAIL_ENABLED` | Enable the mail worker |
-| `APP_PUBLIC_URL` | Actual deployed HTTPS app address |
+| `APP_PUBLIC_URL` | `https://scopesathi-api-112358672382.europe-west1.run.app` for the current deployment |
+| `MAIL_TRIGGER_SERVICE_ACCOUNT` | Exact OIDC identity allowed to invoke hosted email batches |
 | `EMAIL_LOCAL_TEST` | Explicit host-Mac email testing |
 
-See [email setup](docs/EMAIL_SETUP.md). The backend must run to process mail. Local-test messages explain that localhost works only on the host Mac. Invitations need a publicly reachable app for remote teammates.
+See [email setup](docs/EMAIL_SETUP.md). Cloud Run mail is processed by the authenticated Scheduler endpoint; the local backend uses polling. The Scheduler and SMTP secrets must be configured separately. Local-test messages explain that localhost works only on the host Mac. Invitations need a publicly reachable app for remote teammates.
 
 ## Approval and security
 
@@ -175,7 +179,7 @@ Local tests do not prove a new deployment, live Gemini or inbox delivery. See [v
 
 ## Deployment and limits
 
-Public deployment is not complete. The supplied Google path uses Cloud Run with optional Firebase Hosting and requires billing configuration. Free allowances are not a guarantee of zero cost. See [deployment guide](docs/GOOGLE_SETUP.md); provide secrets through the deployment environment rather than uploading .env.
+The public app is deployed at **[ScopeSathi on Cloud Run](https://scopesathi-api-112358672382.europe-west1.run.app)** in `europe-west1`, service `scopesathi-api`. The owner verified loading and Google sign-in. Hosted SMTP and live Vertex workflows still need their own verification. GitHub pushes to `main` trigger builds and deployments; see the [release and email guide](docs/CLOUD_RUN_RELEASE.md). Free allowances are not a guarantee of zero cost. See [deployment guide](docs/GOOGLE_SETUP.md); provide secrets through the deployment environment rather than uploading .env.
 
 Prototype limits: no OCR for scanned PDFs, meeting recording, Jira sync or automatic billing; live AI requires configuration; project size and per-instance rate limits apply. Failed or uncertain SMTP submissions need review before retrying to avoid duplicates.
 

@@ -18,7 +18,8 @@ flowchart TB
   DOMAIN --> AI[Optional Gemini]
   AI -->|Validated proposals only| DOMAIN
   FS --> OUT[Mail outbox]
-  OUT --> WORKER[Backend polling worker]
+  OUT --> WORKER[Mail batch worker]
+  SCHED[Cloud Scheduler OIDC] -->|Authenticated HTTP request| WORKER
   WORKER --> SMTP[Gmail SMTP]
 ```
 
@@ -83,8 +84,8 @@ flowchart LR
   R --> S[SMTP sender]
 ```
 
-Cloud Run serves the bundled frontend too. This is a deployment design, not evidence of a completed deployment. Use attached service-account credentials and a secret store.
+Cloud Run serves the bundled frontend and API at [the live ScopeSathi address](https://scopesathi-api-112358672382.europe-west1.run.app). The owner verified loading and sign-in; hosted SMTP and Vertex calls require separate verification. Use attached service-account credentials and a secret store.
 
 ## Tradeoffs
 
-One project document makes scope/task/history changes atomic but requires whole-project reads and a 700 KB application cap. Lists are not paginated. Growth needs subcollections, pagination and explicit data migration. Per-process limiters are not global budgets. PDF parsing is in-process. The mail polling timer is not a durable scheduler and is unreliable on sleeping/scale-to-zero hosts. These are production gaps, not implemented distributed services.
+One project document makes scope/task/history changes atomic but requires whole-project reads and a 700 KB application cap. Lists are not paginated. Growth needs subcollections, pagination and explicit data migration. Per-process limiters are not global budgets. PDF parsing is in-process. Local mail polling is unreliable on sleeping hosts. Cloud Run instead provides an authenticated scheduled batch endpoint; the owner must configure SMTP secrets and Scheduler before hosted sending works. Shared limiters and data-growth improvements remain production gaps. See [release setup](CLOUD_RUN_RELEASE.md).

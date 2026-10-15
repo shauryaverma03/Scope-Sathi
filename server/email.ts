@@ -3,6 +3,7 @@ import { getFirestore } from "firebase-admin/firestore";
 import { randomUUID } from "node:crypto";
 import { canSendInvitation } from "./invitation-state";
 import type { Project } from "../shared/model";
+import { deployment } from "../shared/deployment";
 export type EmailContent = { subject: string; html: string; text: string };
 export function escapeHTML(s: string) {
   return s.replace(
@@ -15,9 +16,17 @@ export function escapeHTML(s: string) {
 }
 export function publicAppURL() {
   try {
-    const u = new URL(process.env.APP_PUBLIC_URL || "");
+    const configured = process.env.APP_PUBLIC_URL;
+    const fallback =
+      process.env.APP_MODE === "google" &&
+      process.env.GOOGLE_CLOUD_PROJECT === deployment.project
+        ? deployment.origin
+        : "";
+    const u = new URL(configured === undefined ? fallback : configured);
     if (
       u.protocol !== "https:" ||
+      !!u.username ||
+      !!u.password ||
       ["localhost", "127.0.0.1", "[::1]"].includes(u.hostname)
     )
       return "";
@@ -168,8 +177,8 @@ export function mailJob(
   };
 }
 let running = false;
-export async function deliverQueuedMail() {
-  if (running || !emailReady()) return;
+export async function deliverQueuedMail(batchSize = 10) {
+  if (running || !emailReady()) return false;
   running = true;
   try {
     const db = getFirestore();
@@ -190,7 +199,7 @@ export async function deliverQueuedMail() {
     const jobs = await db
       .collection("mailOutbox")
       .where("status", "in", ["queued", "waiting_setup"])
-      .limit(10)
+      .limit(Math.max(1, Math.min(10, batchSize)))
       .get();
     const transport = nodemailer.createTransport({
       host: process.env.SMTP_HOST || "smtp.gmail.com",
@@ -285,8 +294,10 @@ export async function deliverQueuedMail() {
       }
     }
     transport.close();
+    return true;
   } catch {
     console.error("Email queue check failed; no delivery confirmed.");
+    return false;
   } finally {
     running = false;
   }

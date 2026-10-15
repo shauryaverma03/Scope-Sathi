@@ -66,8 +66,14 @@ Local logs: .data/qa-tests.log, .data/qa-build.log, .data/qa-firestore.log, .dat
 4. Download and inspect baseline/history JSON and task CSV.
 5. After deployment, verify authorized domains, invitation deep links and welcome/invitation inbox delivery using consenting test accounts.
 6. Evaluate Gemini on held-out labelled requests; keep evidence validation and explicit approval.
-7. Before scaling, add a durable mail scheduler and shared limiter. Current polling/counters are process-local.
+7. Configure and verify the supplied authenticated Scheduler mail endpoint before hosted email use; add a shared limiter before scaling. Local polling and rate counters remain process-local.
 
 ## Manual-test follow-up: QA-008
 
 The supplied screenshot showed a failed pricing-settings message inside a newly opened change-request dialog. Root cause: every dialog read the same unscoped global error string. Dialogs now record the error sequence at opening and display only failures produced afterward. A repeated identical error from a new submission still appears because errors have distinct sequence numbers. The prior message can remain on its original page; it is not treated as a new request failure. Rendered-component and sequence regressions pass. The paid-round validation itself remains correct: a positive rate needs a finite allowance and a separate designated client with accepted access. Browser interaction remains unverified.
+
+## Deployment-link follow-up — 16 October 2026
+
+The owner verified Cloud Run loading and sign-in on 15 October. This release aligns deployment names, hosting rewrites and email origins; SMTP delivery remains pending cloud secret and Scheduler setup. New tests cover Google OIDC identity rejection, public-origin audience verification, sender readiness and live links across all four email types. No outgoing email or cloud mutation was performed. See [release steps](CLOUD_RUN_RELEASE.md).
+
+Release verification: **57 local tests passed** across mail identity/link checks, extraction, approvals, pricing, persistence and component rendering; production build and deployment-script syntax checks passed. HTTP-listener suites, live SMTP/Scheduler and live Vertex calls were not rerun for this release.

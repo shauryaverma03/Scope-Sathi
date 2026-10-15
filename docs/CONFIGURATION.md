@@ -18,7 +18,8 @@ Keep private values in ignored .env locally or a deployment secret store. Never 
 | GEMINI_API_KEY | Private Developer API credential for firebase mode |
 | EMAIL_ENABLED | Enables the backend mail worker |
 | EMAIL_LOCAL_TEST | Allows local firebase-mode mail without public URL; not a production option |
-| APP_PUBLIC_URL | Reachable HTTPS application address for email links |
+| APP_PUBLIC_URL | Current live origin: `https://scopesathi-api-112358672382.europe-west1.run.app`; used for mail links and Scheduler OIDC audience |
+| MAIL_TRIGGER_SERVICE_ACCOUNT | Exact verified service-account email permitted to invoke hosted mail batches |
 | SMTP_HOST, SMTP_PORT | Sender host/port; Gmail setup uses TLS on 465 |
 | SMTP_USER, SMTP_PASS | Private SMTP account and app password |
 | EMAIL_FROM | Sender identity shown in mail |
@@ -39,3 +40,7 @@ Successful browser login does not prove backend Firestore access. A Gmail app pa
 - npm run cloud:configure prepares cloud-mode configuration; review before changing an existing local setup.
 
 Restart after changing backend configuration. Check Settings, then verify a real save and reload. Do not infer a successful connection from an environment variable being present. No documentation command activates billing automatically.
+
+## Current public deployment
+
+See [Cloud Run release setup](CLOUD_RUN_RELEASE.md) for production environment variables, secret references, GitHub updates and Scheduler setup. Local `.env` settings are not copied by Cloud Build. The known scopesathi google-mode installation defaults email links to the current Cloud Run origin when no explicit URL is set; local modes and other projects do not inherit it.

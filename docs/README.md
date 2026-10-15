@@ -4,7 +4,7 @@
 
 ![ScopeSathi home page](images/home.jpg)
 
-Reviewed against source on **14 October 2026**. Screenshots are actual earlier development captures using demonstration data; they do not establish current cloud connectivity.
+Deployment links updated on **16 October 2026**. The owner verified public loading/sign-in on 15 October; hosted email and live AI require separate checks. Screenshots are actual earlier development captures using demonstration data; they do not establish current cloud connectivity.
 
 | Guide | Contents |
 | --- | --- |
@@ -18,6 +18,7 @@ Reviewed against source on **14 October 2026**. Screenshots are actual earlier d
 | [System protections](SYSTEM_DESIGN.md) | Rate limits, logging, timeouts and shutdown |
 | [Local Firebase setup](FREE_SETUP.md) | Local backend with Google services |
 | [Email setup](EMAIL_SETUP.md) | Sender, invitations and delivery states |
+| [Live release and hosted email](CLOUD_RUN_RELEASE.md) | Current Cloud Run URL, update workflow, SMTP secrets and scheduled delivery |
 | [Google deployment](GOOGLE_SETUP.md) | Cloud Run, Hosting, IAM and limitations |
 | [Configuration](CONFIGURATION.md) | Modes and environment variables |
 | [QA audit and bug register](QA_REPORT.md) | Reproductions, fixes, feature coverage and remaining release checks |

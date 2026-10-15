@@ -28,4 +28,8 @@ Existing safeguards remain: bounded JSON/uploads, verified Google identity, owne
 
 ## Remaining deployment works
 
-Use platform monitoring and alerting, a distributed limiter for multiple replicas, and a durable triggered mail worker before relying on autoscaling email delivery. The existing mail polling timer is not a durable scheduler and can stop when a host sleeps. No infrastructure or paid service is provisioned by these changes.
+Use platform monitoring and alerting and a distributed limiter before multiple replicas. The authenticated mail batch endpoint is implemented for Cloud Run; deploying its code does not create a Scheduler job or SMTP secret. Local polling remains process-bound. No infrastructure or paid service is provisioned by these changes.
+
+## Cloud Run release configuration
+
+The deployed service is `scopesathi-api` in `europe-west1`, with request-based billing, service min 0/max 1, concurrency 20 and a 60-second request timeout. These settings control capacity, not total spending. Firebase/Firestore data persists independently of container lifetime; in-memory rate counters reset on restart. The hosted mail worker is invoked through a Google OIDC-authenticated Scheduler request and processes one eligible message per invocation, instead of relying on background polling after a response. Scheduler and SMTP setup are pending until the owner applies and verifies them. See [release operations](CLOUD_RUN_RELEASE.md).

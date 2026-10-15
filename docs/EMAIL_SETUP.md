@@ -10,14 +10,20 @@ This browser-rendered template uses demonstration content; it is not an inbox de
 
 Existing project permissions remain intact. On their next login, existing teammates get a role notice in their inbox. A role badge also appears beside the project name.
 
-## Configure a sender
+## Current Cloud Run installation
+
+Live origin: **https://scopesathi-api-112358672382.europe-west1.run.app**. Welcome, invitation, access and membership links use this origin at send time in the known google-mode deployment. Set `APP_PUBLIC_URL` explicitly in Cloud Run.
+
+For hosted delivery, follow **[Secret Manager and authenticated Scheduler setup](CLOUD_RUN_RELEASE.md#configure-hosted-email-without-exposing-the-password)**. GitHub does not upload your local SMTP settings. No hosted SMTP test has been performed by preparing this release.
+
+## Configure a local sender
 
 For Gmail, use an account that has two-step verification and supports app passwords. Create a dedicated app password in Google Account settings. This is separate from your Google account password and Firebase Admin credential. Never paste either password into chat.
 
 Save the app password in a private text file outside this project. Then run:
 
 ```
-npm run email:configure -- sender@gmail.com /absolute/path/to/private-password.txt https://your-public-app.example
+npm run email:configure -- sender@gmail.com /absolute/path/to/private-password.txt https://scopesathi-api-112358672382.europe-west1.run.app
 ```
 
 The script verifies SMTP access and stores the settings only in ignored local `.env`. It sends no test email. Restart the backend after setup. The public URL must be the actual HTTPS address where recipients can access your ScopeSathi app. Localhost is not reachable from a teammate’s computer. Without that URL, delivery waits for setup unless explicit local-test mode is enabled as described below.
@@ -48,7 +54,7 @@ The diagram describes delivery states, not inbox guarantees. Welcome deduplicati
 - uncertain: the worker was interrupted; check the sender account to avoid duplicates.
 - cancelled: the invitation is no longer active.
 
-There is no automatic resend after a failed or uncertain submission. The app avoids claiming exact-once mail delivery, which SMTP cannot guarantee across crashes. The worker runs only while the backend is running; it stores jobs in Firestore across restarts.
+There is no automatic resend after a failed or uncertain submission. The app avoids claiming exact-once mail delivery, which SMTP cannot guarantee across crashes. Local polling runs only while the backend is running. Cloud Run disables that polling loop and uses `POST /api/internal/mail/drain`, authenticated using Google-signed OIDC for the exact `MAIL_TRIGGER_SERVICE_ACCOUNT` and public-origin audience. Each invocation processes at most one queued job inside the request. Jobs persist in Firestore across restarts; configure the Scheduler before relying on hosted delivery.
 
 The HTML templates include branding, the inviter and project, a role explanation, next steps, a call-to-action, expiry information and a plain-text alternative. User-supplied text is escaped. The previews use an example URL and are not sent emails.
 

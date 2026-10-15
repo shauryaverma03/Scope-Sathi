@@ -10,6 +10,7 @@ import {
   invitationStatuses,
 } from "./invitations.js";
 import { deliverQueuedMail, emailReady } from "./email.js";
+import { mailTrigger } from "./mail-trigger.js";
 import { databaseStatus, databaseFailure } from "./database.js";
 import { previewMigration, importProject } from "./migration.js";
 import "dotenv/config";
@@ -126,6 +127,7 @@ app.use("/api", (_req, res, next) => {
   next();
 });
 app.get("/api/health", (_req, res) => res.json({ ok: true, mode }));
+app.post("/api/internal/mail/drain", mailTrigger());
 app.get("/api/config", async (_req, res) =>
   res.json({
     mode,
@@ -137,7 +139,11 @@ app.get("/api/config", async (_req, res) =>
     email: {
       configured: emailReady(),
       message: emailReady()
-        ? "Sender configured. Email status is shown for each invitation; inbox delivery is not guaranteed."
+        ? process.env.K_SERVICE
+          ? process.env.MAIL_TRIGGER_SERVICE_ACCOUNT
+            ? "Sender configured for scheduled delivery. Verify the Scheduler job is enabled; invitation status records SMTP submission, not inbox delivery."
+            : "Sender configured, but hosted delivery needs the authenticated mail Scheduler. In-app notifications remain available."
+          : "Sender configured. Email status is shown for each invitation; inbox delivery is not guaranteed."
         : "Email delivery needs a sender and a public app URL. Notifications remain available in the app.",
     },
   }),
@@ -885,7 +891,9 @@ app.use(
     });
   },
 );
-if (firestore && emailReady()) {
+// A Cloud Run instance can lose CPU after responding or scale to zero.
+// Hosted delivery runs inside the authenticated Scheduler request instead.
+if (firestore && emailReady() && !process.env.K_SERVICE) {
   const timer = setInterval(() => {
     void deliverQueuedMail();
   }, 15000);

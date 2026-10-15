@@ -93,3 +93,7 @@ POST /projects/:id/task-plan accepts revision and items (title, requirementId), 
 ### Explicit manual recovery
 
 POST /api/projects/:id/requests accepts optional method: ai (default) or local. Local selection performs no AI call and creates a pending manual clarification proposal; it never changes approved scope. POST /api/projects/:id/extract also accepts method: local. Parsing and explicit local/manual preparation use a separate 30/min per-user budget from AI analysis (8/min), under the overall API limits.
+
+## Scheduled email endpoint
+
+`POST /api/internal/mail/drain` is separate from user APIs. It requires a Google-signed OIDC token for the public-origin audience and the exact verified email in `MAIL_TRIGGER_SERVICE_ACCOUNT`; Firebase user tokens cannot authorize it. Local/unconfigured mode returns 503, missing token 401, invalid identity 403. A valid configured invocation awaits a single-job batch. A 200 means the scan completed, not inbox delivery. Queue/setup or concurrent-worker failures return 503. Enable only after following [hosted mail setup](CLOUD_RUN_RELEASE.md).

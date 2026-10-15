@@ -43,4 +43,4 @@ The current product retains extracted text, not original uploaded files. No uplo
 
 ## Service status
 
-Library presence and a stack illustration do not prove service connectivity. Settings probes Firestore; live AI needs credentials/model access; SMTP submission is not proof of inbox delivery. Cloud Run/Hosting are deployment candidates until tested. See [validation](VALIDATION.md).
+Library presence and a stack illustration do not prove service connectivity. Settings probes Firestore; live AI needs credentials/model access; SMTP submission is not proof of inbox delivery. Cloud Run is deployed and browser loading/sign-in were verified by the owner; Firebase Hosting remains optional. Hosted email and Vertex calls need independent verification. See [current release setup](CLOUD_RUN_RELEASE.md). See [validation](VALIDATION.md).

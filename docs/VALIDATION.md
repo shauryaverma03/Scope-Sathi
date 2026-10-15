@@ -1,6 +1,10 @@
 # Validation record
 
-## Current QA snapshot — 15 October 2026
+## Deployment update — 16 October 2026
+
+Owner screenshots confirm successful Cloud Build deployment, public page loading and Google sign-in. The current release updates email links and adds the OIDC-authenticated scheduled-mail endpoint. Local build and focused mail/UI tests pass; live SMTP, Scheduler execution and Vertex analysis were not tested in this update. See [release setup](CLOUD_RUN_RELEASE.md).
+
+## Historical QA snapshot — 15 October 2026
 
 72 automated tests pass, production build passes, and live Firestore/invitation fixture checks pass. See [QA_REPORT.md](QA_REPORT.md) for bug reproductions, fixes and browser/email limitations. Older entries below are historical.
 
@@ -110,3 +114,5 @@ Live Firestore checks passed for quote/approval persistence and a reviewed requi
 Slow-service follow-up: 64 tests pass, including a deliberately stalled AI transport that ignores cancellation, propagated service errors, and explicit local PDF extraction. The earlier live PDF retry took approximately 90 seconds and returned 504 before the new 40-second application deadline was added.
 
 Gemini integration follow-up: 66 tests pass. Additional tests cover provider schema compatibility while retaining strict application bounds, whitespace-only quote recovery, regex punctuation, and rejection of invented source wording. Flash-Lite setup passed extraction and change analysis; two full PDF live calls returned six requirements in approximately 8.9 and 6.6 seconds. A separate live change call returned source-validated clarification/questions. App restarted with gemini-3.5-flash-lite; no user baseline modified.
+
+Release verification: **57 local tests passed** across mail identity/link checks, extraction, approvals, pricing, persistence and component rendering; production build and deployment-script syntax checks passed. HTTP-listener suites, live SMTP/Scheduler and live Vertex calls were not rerun for this release.

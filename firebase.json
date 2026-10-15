@@ -5,7 +5,7 @@
     "rewrites": [
       {
         "source": "/api/**",
-        "run": { "serviceId": "scope-sathi", "region": "asia-south1" }
+        "run": { "serviceId": "scopesathi-api", "region": "europe-west1" }
       },
       { "source": "**", "destination": "/index.html" }
     ],
