@@ -1,5 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
 import { ArrowRight, Check, ShieldCheck, X, Compass } from "lucide-react";
+import { createPortal } from "react-dom";
+
+function HelpOverlay({ children }: { children: React.ReactNode }) {
+  return typeof document === "undefined"
+    ? children
+    : createPortal(children, document.body);
+}
 
 function stored(key: string) {
   try {
@@ -177,40 +184,60 @@ export function FirstVisit({ navigate }: { navigate?: (tab: string) => void }) {
   }
   return (
     <>
-      <div className="workspace-help-actions">
-        <button className="button tour-launch" onClick={() => setOpen(true)}>
-          <Compass size={16} /> Website tour
+      <div
+        className="workspace-help-actions"
+        role="group"
+        aria-label="Help and privacy"
+      >
+        <button
+          className="button tour-launch"
+          title="Website tour"
+          aria-label="Website tour"
+          onClick={() => setOpen(true)}
+        >
+          <Compass size={16} /> <span>Website tour</span>
         </button>
         <button
           className="text-button preference-launch"
+          title="Privacy preferences"
+          aria-label="Privacy preferences"
           onClick={() => setNotice(true)}
         >
-          Privacy preferences
+          <ShieldCheck size={16} /> <span>Privacy preferences</span>
         </button>
       </div>
       {notice && !open && (
-        <section
-          className="preference-notice"
-          aria-label="Browser storage preferences"
-        >
-          <strong>Your browser, your choice</strong>
-          <p>
-            Firebase uses browser storage to keep you signed in. We use session
-            storage to avoid repeating this tour in the same tab. Optionally
-            remember tour completion across visits. No advertising or analytics
-            cookies are used.
-          </p>
-          <div>
-            <button className="button" onClick={() => preference(false)}>
-              Essential only
-            </button>
-            <button className="button primary" onClick={() => preference(true)}>
-              Remember my tour
-            </button>
-          </div>
-        </section>
+        <HelpOverlay>
+          <section
+            className="preference-notice"
+            aria-label="Browser storage preferences"
+          >
+            <strong>Your browser, your choice</strong>
+            <p>
+              Firebase uses browser storage to keep you signed in. We use
+              session storage to avoid repeating this tour in the same tab.
+              Optionally remember tour completion across visits. No advertising
+              or analytics cookies are used.
+            </p>
+            <div>
+              <button className="button" onClick={() => preference(false)}>
+                Essential only
+              </button>
+              <button
+                className="button primary"
+                onClick={() => preference(true)}
+              >
+                Remember my tour
+              </button>
+            </div>
+          </section>
+        </HelpOverlay>
       )}
-      {open && <Tour navigate={navigate} close={() => setOpen(false)} />}
+      {open && (
+        <HelpOverlay>
+          <Tour navigate={navigate} close={() => setOpen(false)} />
+        </HelpOverlay>
+      )}
     </>
   );
 }
@@ -228,7 +255,6 @@ export function Home({
     [remember, setRemember] = useState(false);
   return (
     <div className="public-home">
-      <FirstVisit />
       <header className="home-nav">
         <a href="#" className="home-logo">
           ◇ scopesathi<span>✧</span>
@@ -400,6 +426,7 @@ export function Home({
           No advertising or analytics cookies. Sign-in uses essential browser
           storage.
         </span>
+        <FirstVisit />
       </footer>
       {auth && (
         <div className="tour-backdrop">

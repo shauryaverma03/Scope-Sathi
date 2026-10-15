@@ -376,6 +376,13 @@ function App() {
               <Settings size={18} />
               Project settings
             </button>
+            <FirstVisit
+              navigate={(next) => {
+                setTab(next as Tab);
+                setModal(null);
+                setReviewId(null);
+              }}
+            />
             <div
               className="profile"
               title={
@@ -662,13 +669,6 @@ function App() {
                 </footer>
               </>
             )}
-            <FirstVisit
-              navigate={(next) => {
-                setTab(next as Tab);
-                setModal(null);
-                setReviewId(null);
-              }}
-            />
           </main>
         </div>
         {toast && (

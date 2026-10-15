@@ -2201,6 +2201,8 @@ blockquote {
 .home-footer {
   border-top: 1px solid #dfe5d8;
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   justify-content: space-between;
   gap: 20px;
   padding: 28px 32px;
@@ -2268,17 +2270,63 @@ blockquote {
 }
 .tour-launch {
   position: static;
-  z-index: 40;
-  background: white;
-  box-shadow: 0 3px 18px #234c3420;
+  box-shadow: none;
 }
 .preference-launch {
   position: static;
-  z-index: 40;
-  background: #fafbf6;
 }
-.workspace-help-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 16px; padding: 12px 0 0; }
-.workspace-help-actions .preference-launch { order: -1; }
+.workspace-help-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+.workspace-help-actions > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+}
+.sidebar .workspace-help-actions {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  margin: 8px 0;
+}
+.sidebar .workspace-help-actions > button {
+  width: 100%;
+  justify-content: flex-start;
+  padding: 10px 12px;
+  font-size: 11px;
+  border: 0;
+  background: transparent;
+  border-radius: 8px;
+}
+.sidebar .workspace-help-actions > button:hover {
+  background: var(--pale, #edf2e4);
+}
+.sidebar .workspace-help-actions svg {
+  flex-shrink: 0;
+}
+.home-footer .workspace-help-actions {
+  margin-left: auto;
+}
+@media (max-width: 900px) {
+  .sidebar .workspace-help-actions > button {
+    justify-content: center;
+    padding: 10px;
+  }
+  .sidebar .workspace-help-actions > button > span {
+    display: none;
+  }
+}
+@media (max-width: 700px) {
+  .home-footer .workspace-help-actions {
+    margin-left: 0;
+    justify-content: flex-start;
+  }
+}
 .preference-notice {
   position: fixed;
   bottom: 70px;
@@ -2348,13 +2396,6 @@ blockquote {
   }
   .tour-card {
     padding: 30px 24px;
-  }
-  .preference-launch {
-    right: 170px;
-    font-size: 10px;
-  }
-  .tour-launch {
-    right: 12px;
   }
 }
 .section-start {
