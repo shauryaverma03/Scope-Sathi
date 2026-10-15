@@ -15,7 +15,7 @@ React · TypeScript · Firebase · Firestore · Gmail · Optional Gemini
 
 ## Documentation
 
-For the deployed service and hosted email setup, see **[Cloud Run release guide](docs/CLOUD_RUN_RELEASE.md)**.
+For the deployed service and hosted email setup, see **[Cloud Run release guide](docs/CLOUD_RUN_RELEASE.md)**. For the reasoning behind every cloud setting, see **[Deployment decisions: what, why, and how](docs/DEPLOYMENT_DECISIONS.md)**.
 
 Start at the **[documentation hub](docs/README.md)** for the complete project guide. See the **[QA audit and bug fixes](docs/QA_REPORT.md)** for current evidence and remaining release checks.
 
@@ -102,6 +102,23 @@ Invalid email formats are rejected. A correctly formatted address cannot be guar
 | **Firebase Hosting** | Optional alternate frontend address | Rewrite points to the existing Cloud Run service; not verified as deployed |
 
 The graphic illustrates the stack; it is not a Google endorsement. Each installation's configuration determines available capabilities. Manual review works without Gemini; prepared demo examples are not live AI.
+
+## Deployment design and cost control
+
+The public prototype uses **Cloud Run automatic scaling with minimum 0 and maximum 1 instance**, request-based billing, concurrency **20**, and a **60-second** request timeout. Minimum zero permits idle scale-down; maximum one deliberately limits capacity. The default CPU and concurrency utilization targets remain 60%. These are prototype settings, not measured throughput or high-availability guarantees.
+
+| Decision | Reason | Tradeoff |
+| --- | --- | --- |
+| Request-based billing and minimum zero | Match intermittent usage without reserving a warm instance | Cold starts; background polling is unsuitable for reliable hosted mail |
+| Maximum one instance | Restrict compute expansion | Requests can wait or fail during bursts |
+| Concurrency 20 | Starting point for overlapping requests and document processing | Needs load testing; not 20 users or a requests-per-minute limit |
+| Firestore transactions | Atomically record scope changes, task impact and history | Whole-project reads and aggregate size limit prototype scale |
+| Attached runtime account and secret references | Avoid shipping long-lived Admin keys or SMTP passwords in Git | Cloud IAM and secrets require separate configuration |
+| Authenticated scheduled email batches | Process outbox work while the request has CPU | Scheduler and SMTP setup still required; delivery is not instantaneous or exactly once |
+
+The owner configured an overall ₹200 alerts-only budget and ₹100 caps for Cloud Run and Gemini API. **Vertex AI requires its own service cap.** Alerts, service caps, rate limits and prepaid credit do not form a guaranteed total spending ceiling. Compute, AI, storage, builds and other services can contribute costs.
+
+Read the **[complete deployment rationale](docs/DEPLOYMENT_DECISIONS.md)** for settings, architecture diagrams, role boundaries, cold starts, cost monitoring, CI/CD, rollback and remaining limitations. Read the **[release guide](docs/CLOUD_RUN_RELEASE.md)** for console setup steps. Deployment screenshots establish public loading and sign-in; they do not establish live SMTP delivery, a particular current instance count, or exhaustive model accuracy.
 
 ## Get started
 

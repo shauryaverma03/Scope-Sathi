@@ -44,3 +44,7 @@ Restart after changing backend configuration. Check Settings, then verify a real
 ## Current public deployment
 
 See [Cloud Run release setup](CLOUD_RUN_RELEASE.md) for production environment variables, secret references, GitHub updates and Scheduler setup. Local `.env` settings are not copied by Cloud Build. The known scopesathi google-mode installation defaults email links to the current Cloud Run origin when no explicit URL is set; local modes and other projects do not inherit it.
+
+## Console settings are not environment variables
+
+Service min/max instances, CPU/memory, request-based billing, concurrency, request timeout, ingress and the attached runtime account belong to the Cloud Run service configuration. They cannot be changed by inventing variables such as MAX_INSTANCES in this application. Firebase Authorized domains, IAM roles, Secret Manager versions and billing caps are separately managed settings. See the [setting-by-setting rationale](DEPLOYMENT_DECISIONS.md#cloud-run-settings-and-reasons) and [release procedure](CLOUD_RUN_RELEASE.md).

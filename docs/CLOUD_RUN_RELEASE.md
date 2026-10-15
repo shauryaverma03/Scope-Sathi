@@ -1,6 +1,6 @@
 # Live Cloud Run deployment and email setup
 
-[Documentation home](README.md)
+[Documentation home](README.md) · [Why these deployment settings?](DEPLOYMENT_DECISIONS.md)
 
 Live application: **[Open ScopeSathi](https://scopesathi-api-112358672382.europe-west1.run.app)**.
 

@@ -1,4 +1,6 @@
-# ScopeSathi backend protection
+# ScopeSathi system design and backend protection
+
+For the full what/why/how of Cloud Run, scaling, billing, networking, IAM, AI and scheduled mail, read **[Deployment decisions](DEPLOYMENT_DECISIONS.md)**. This page records the backend protections implemented in code.
 
 Requests pass through security headers, generated request IDs, an ingress rate limit, JSON size validation, verified authentication, per-user limits, project authorization and transactional revision checks.
 
@@ -33,3 +35,17 @@ Use platform monitoring and alerting and a distributed limiter before multiple r
 ## Cloud Run release configuration
 
 The deployed service is `scopesathi-api` in `europe-west1`, with request-based billing, service min 0/max 1, concurrency 20 and a 60-second request timeout. These settings control capacity, not total spending. Firebase/Firestore data persists independently of container lifetime; in-memory rate counters reset on restart. The hosted mail worker is invoked through a Google OIDC-authenticated Scheduler request and processes one eligible message per invocation, instead of relying on background polling after a response. Scheduler and SMTP setup are pending until the owner applies and verifies them. See [release operations](CLOUD_RUN_RELEASE.md).
+
+## Distinguish the controls
+
+| Control | Unit | Prototype setting / behavior |
+| --- | --- | --- |
+| Autoscaling | Container instances | Service min 0 / max 1; cold starts accepted |
+| Concurrency | In-flight requests per instance | 20; not a user or per-minute quota |
+| Utilization targets | Scaling signals | Default 60% CPU and concurrent-request utilization; not hard usage limits |
+| Rate limits | Requests per time window | Per-operation budgets above; counters reset on restart |
+| Deadline | Time waiting for a request or model | 40-second AI deadline, 55-second browser deadline, 60-second Cloud Run timeout |
+| Spending alerts | Recorded monetary spend | Notify recipients; do not pause usage |
+| Eligible service cap | Service-specific monthly estimated spend | Can pause new usage after enforcement; delays and other costs remain |
+
+Increasing one value does not increase the others automatically. Maximum one instance does not establish high availability or a guaranteed maximum bill. See [cost and monitoring details](DEPLOYMENT_DECISIONS.md#cost-controls-and-what-they-actually-protect).

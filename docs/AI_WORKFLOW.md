@@ -27,7 +27,7 @@ Each finding identifies its change kind, requirementId, currentQuote, requestQuo
 
 ## Model configuration
 
-firebase mode uses GEMINI_API_KEY and GEMINI_MODEL with the Developer API. google mode uses Vertex AI, project/location and ADC. The SDK transport timeout is 90 seconds, with an independent 40-second application deadline that also aborts the request; generation requests JSON schema output with a 4,096-token output limit and low thinking for Gemini 3 models. Model access/availability must be verified for the installation.
+firebase mode uses GEMINI_API_KEY and GEMINI_MODEL with the Developer API. google mode uses Vertex AI, project/location and ADC. The SDK transport timeout is 16 seconds per attempt, with an independent 40-second application deadline that also aborts the request; generation requests JSON schema output with a 4,096-token output limit and low thinking for Gemini 3 models. Model access/availability must be verified for the installation.
 
 The instruction treats client text as untrusted data and rejects embedded instructions to approve, invent facts or expose secrets. A prompt alone is insufficient protection: server validation and reviewer approval form the actual write boundary.
 
@@ -66,3 +66,7 @@ The SDK makes at most two attempts for configured transient status codes, with s
 The setup probe verified extraction and three change findings before saving the ignored environment configuration. Two subsequent full original-PDF extractions each returned six validated features (approximately 8.9 and 6.6 seconds). A change-review call returned a valid clarification finding with a source quote and questions about guest orders. This confirms live requests and validation, not exhaustive semantic accuracy or guaranteed provider uptime. No project was saved by these probes.
 
 References: [structured output schema support](https://ai.google.dev/gemini-api/docs/structured-output), [Flash-Lite model](https://ai.google.dev/gemini-api/docs/models/gemini-3.5-flash-lite), [transient error retries](https://ai.google.dev/gemini-api/docs/troubleshooting).
+
+## Hosted configuration boundary
+
+The selected Vertex endpoint (`global`) is independent of the Cloud Run compute region (`europe-west1`). The local Developer API key is not required for google-mode ADC model calls. Default configured model text is not proof of live model access; evaluate the deployed workflow after IAM/API/quota changes. [Deployment rationale](DEPLOYMENT_DECISIONS.md#ai-request-lifecycle) explains the deadline layers and cost boundaries.

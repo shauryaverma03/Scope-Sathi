@@ -22,9 +22,13 @@
 | lucide-react | Consistent UI symbols | Icons throughout workspace |
 | Node test runner / tsx | Test TypeScript without separate compilation | Domain and HTTP tests; optional live fixtures |
 | Docker | Reproducible deployment packaging | Multi-stage Node build and runtime image |
-| Cloud Run | Intended hosted backend | Serves Express + built React using attached service account |
+| Cloud Run | Deployed frontend/API hosting | Serves Express + built React using attached service account |
 | Firebase Hosting | Optional Google frontend address | Static dist and API rewrite to Cloud Run |
-| GitHub | Source collaboration and review | Versioned code/docs; uploading source is not deployment |
+| GitHub and Cloud Build | Versioned changes with automated container releases | Pushes to main trigger a build/deploy; tests must be run before push or added as a CI step |
+| Artifact Registry | Store the built container image | Build publishes images that Cloud Run revisions run; retained images can have storage costs |
+| Secret Manager | Keep SMTP credentials outside Git and image layers | Runtime references a specific secret version; cloud setup required |
+| Cloud Scheduler | Wake a mail batch while Cloud Run has request CPU | Planned authenticated five-minute HTTP schedule, one eligible job per invocation; cloud job setup required |
+| google-auth-library | Verify the mail caller independently from browser users | Google-signed OIDC signature, audience and verified exact service-account email checks |
 | Antigravity | Development tool named by project author | Not a production request dependency; no runtime integration is implied |
 
 The repository also uses concurrently for local dev processes, Prettier for formatting, React's Vite plugin and package type definitions. package-lock.json pins the dependency tree; the grpc override should be reconsidered during Firebase upgrades.
@@ -44,3 +48,7 @@ The current product retains extracted text, not original uploaded files. No uplo
 ## Service status
 
 Library presence and a stack illustration do not prove service connectivity. Settings probes Firestore; live AI needs credentials/model access; SMTP submission is not proof of inbox delivery. Cloud Run is deployed and browser loading/sign-in were verified by the owner; Firebase Hosting remains optional. Hosted email and Vertex calls need independent verification. See [current release setup](CLOUD_RUN_RELEASE.md). See [validation](VALIDATION.md).
+
+## Infrastructure decisions
+
+The [deployment rationale](DEPLOYMENT_DECISIONS.md) expands this table with every selected console setting and why it exists: instance bounds, concurrency versus rate limits, default utilization targets, request-based CPU, startup boost, region, public ingress, disabled VPC/session-affinity/mesh options, encryption, service accounts, budget alerts, service caps and release rollback. The [release guide](CLOUD_RUN_RELEASE.md) contains the actual setup procedure.

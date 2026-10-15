@@ -9,6 +9,7 @@ Deployment links updated on **16 October 2026**. The owner verified public loadi
 | Guide | Contents |
 | --- | --- |
 | [Product guide](PRODUCT_GUIDE.md) | Illustrated intake, approvals, revision rounds, tasks and onboarding |
+| [Deployment decisions](DEPLOYMENT_DECISIONS.md) | Every cloud setting, its reason, tradeoffs, costs, verification and growth plan |
 | [Architecture](ARCHITECTURE.md) | Components, trust boundaries, sequences and tradeoffs |
 | [Technology decisions](TECHNOLOGY.md) | Why and how each major library/service is used |
 | [Data model](DATA_MODEL.md) | Collections, aggregates, history and migration |

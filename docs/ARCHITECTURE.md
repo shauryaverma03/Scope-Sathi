@@ -71,8 +71,10 @@ AI generation occurs outside transactions to avoid repeated calls during transac
 | server/store.ts, database.ts, migration.ts | Storage, connection verification and explicit migration |
 | server/ai.ts | Structured generation and manual/sample modes |
 | server/invitations.ts, email.ts | Invitation transactions and outbox |
+| server/mail-trigger.ts | Authenticated Google OIDC mail batch endpoint |
+| shared/deployment.ts | Public deployment metadata; no credentials |
 
-## Intended deployment
+## Deployment topology
 
 ```mermaid
 flowchart LR
@@ -89,3 +91,7 @@ Cloud Run serves the bundled frontend and API at [the live ScopeSathi address](h
 ## Tradeoffs
 
 One project document makes scope/task/history changes atomic but requires whole-project reads and a 700 KB application cap. Lists are not paginated. Growth needs subcollections, pagination and explicit data migration. Per-process limiters are not global budgets. PDF parsing is in-process. Local mail polling is unreliable on sleeping hosts. Cloud Run instead provides an authenticated scheduled batch endpoint; the owner must configure SMTP secrets and Scheduler before hosted sending works. Shared limiters and data-growth improvements remain production gaps. See [release setup](CLOUD_RUN_RELEASE.md).
+
+## Why the deployment settings matter
+
+The [complete deployment decisions](DEPLOYMENT_DECISIONS.md) explain how the selected compute bounds, timeouts, public ingress, backend identity, secret management and billing model support this topology. They also distinguish owner-verified deployment evidence from configuration that still needs cloud setup or testing. [Release operations](CLOUD_RUN_RELEASE.md) explains updates, mail provisioning and recovery.
