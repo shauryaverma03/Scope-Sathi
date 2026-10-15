@@ -19,17 +19,9 @@ Read current settings from Cloud Run before making a deployment claim. The mail 
 
 ScopeSathi uses one Express application to serve both the built React frontend and `/api`. Firebase authenticates humans; the backend checks membership and review permissions; Firestore retains the agreement and decisions. Vertex AI proposes changes, while human approval controls writes. This keeps the prototype understandable and avoids maintaining a separate frontend API origin.
 
-```mermaid
-flowchart LR
-  B[Browser] -->|HTTPS| R[Cloud Run: React assets and Express API]
-  B -->|Google sign-in| A[Firebase Authentication]
-  A -->|ID token| B
-  R -->|Runtime identity| F[(Firestore)]
-  R -->|Structured proposals| V[Vertex AI Gemini]
-  Q[Cloud Scheduler - setup required] -->|Verified OIDC request| R
-  M[Secret Manager - setup required] -->|SMTP password reference| R
-  R -->|Claimed outbox job| S[Gmail SMTP]
-```
+![ScopeSathi cloud architecture: GitHub to Cloud Build and Artifact Registry, browser authentication, Cloud Run API, Firestore, Vertex AI, and pending scheduled mail](images/cloud-architecture.png)
+
+*Architecture illustration. Cloud Run serves React and Express together; only the backend accesses Firestore and Vertex AI. The amber mail section requires owner setup. [Image provenance and generation prompts](images/GENERATION.md).*
 
 Firestore is persistent state; a Cloud Run container is replaceable compute. Local demo storage is a development alternative, never automatic failover after a cloud failure. Firebase Hosting is optional and is not required for the current direct Cloud Run URL.
 
@@ -60,14 +52,9 @@ The choices are prototype tradeoffs, not claims of high availability or unlimite
 
 ## How autoscaling behaves here
 
-```mermaid
-flowchart TD
-  A[No active instance] -->|Request arrives| B[Container starts]
-  B --> C[API handles requests]
-  C -->|More requests within capacity| C
-  C -->|No room at configured capacity| D[Requests may wait or fail under load]
-  C -->|Idle and eligible for scale-down| A
-```
+![Scaling lifecycle: idle at minimum zero, cold start when a request arrives, one active instance with concurrency 20, and waiting or failure at capacity](images/cloud-scaling.png)
+
+*Conceptual lifecycle, not measured capacity. A maximum of one limits normal scale-out; instance limits do not guarantee a spending ceiling. See the numbered explanation below.*
 
 1. At zero instances, a request can trigger a cold start. Node starts, credentials initialize and the application begins listening. Startup CPU boost may shorten this period.
 2. While active, the instance can receive overlapping requests up to its configured concurrency. For example, five waiting AI analyses and ten ordinary API requests represent 15 in-flight requests, not necessarily 15 distinct users.
@@ -180,6 +167,10 @@ Budget alerts, spend caps, credit balances and instance limits have different me
 7. Scheduler and `mailOutbox`: inspect job execution and submission state separately. Pause the job and disable email if investigating unexpected mail activity.
 
 ## Release, failure handling and growth
+
+![Release workflow: test and build locally, push main, Cloud Build packages and deploys, verify revision and test the live application](images/release-workflow.png)
+
+*Code deployment and cloud configuration are separate. Secrets, IAM and Scheduler still need their own setup; the Docker build does not run the test suite.*
 
 Pushes to `main` trigger Cloud Build, Docker packaging, Artifact Registry publication and deployment of a new Cloud Run revision. This is continuous deployment, not a multi-environment promotion pipeline. `npm run build` type-checks/bundles in the Dockerfile; it does **not** run the test suite there. Run relevant tests before pushing or add a dedicated CI test step. GitHub does not synchronize local `.env` or secret values.
 

@@ -38,6 +38,10 @@ The deployed service is `scopesathi-api` in `europe-west1`, with request-based b
 
 ## Distinguish the controls
 
+![Scale-to-zero, cold starts and the distinction between concurrency and spending limits](images/cloud-scaling.png)
+
+*Selected prototype settings: minimum zero, maximum one, concurrency 20. This is an illustration, not a load-test result.*
+
 | Control | Unit | Prototype setting / behavior |
 | --- | --- | --- |
 | Autoscaling | Container instances | Service min 0 / max 1; cold starts accepted |

@@ -28,6 +28,12 @@ Deployment links updated on **16 October 2026**. The owner verified public loadi
 
 Implemented does not mean configured. Past service verification must be repeated after environment changes. Deployment files are not evidence of a successful public deployment. See [image provenance](images/README.md).
 
+## Visual architecture
+
+![ScopeSathi cloud architecture and pending mail setup](images/cloud-architecture.png)
+
+*Start with the [architecture explanation](ARCHITECTURE.md), [scaling decisions](DEPLOYMENT_DECISIONS.md#how-autoscaling-behaves-here), or [illustrated release steps](CLOUD_RUN_RELEASE.md#update-the-live-site). Generated illustration; see [image provenance](images/README.md).*
+
 ## Revision pricing
 
 [Configure the allowance and cost meter](REVISION_PRICING.md): client consent, scope approval, fixed accepted rates and invoice references.

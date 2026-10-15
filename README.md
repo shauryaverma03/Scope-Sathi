@@ -105,6 +105,10 @@ The graphic illustrates the stack; it is not a Google endorsement. Each installa
 
 ## Deployment design and cost control
 
+![ScopeSathi deployment and application architecture, including hosted mail that requires setup](docs/images/cloud-architecture.png)
+
+*Illustrated design: source deployment, authenticated application requests and scheduled mail. The amber mail path requires separate setup. [Read the architecture](docs/ARCHITECTURE.md) or [image provenance](docs/images/README.md).*
+
 The public prototype uses **Cloud Run automatic scaling with minimum 0 and maximum 1 instance**, request-based billing, concurrency **20**, and a **60-second** request timeout. Minimum zero permits idle scale-down; maximum one deliberately limits capacity. The default CPU and concurrency utilization targets remain 60%. These are prototype settings, not measured throughput or high-availability guarantees.
 
 | Decision | Reason | Tradeoff |

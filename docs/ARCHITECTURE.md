@@ -4,24 +4,9 @@
 
 ScopeSathi is a React client and one Express backend. The backend owns authorization, validation and persistence so approval rules are consistent across browsers.
 
-```mermaid
-flowchart TB
-  U[Browser - React] --> AUTH[Firebase Google authentication]
-  AUTH --> TOKEN[ID token]
-  TOKEN --> API[Express API]
-  U -->|Same-origin requests| API
-  API --> GUARD[Rate limits and role checks]
-  GUARD --> DOMAIN[Evidence and approval rules]
-  DOMAIN --> STORE[Storage adapter]
-  STORE --> FS[(Firestore)]
-  STORE --> LOCAL[(Explicit local JSON mode)]
-  DOMAIN --> AI[Optional Gemini]
-  AI -->|Validated proposals only| DOMAIN
-  FS --> OUT[Mail outbox]
-  OUT --> WORKER[Mail batch worker]
-  SCHED[Cloud Scheduler OIDC] -->|Authenticated HTTP request| WORKER
-  WORKER --> SMTP[Gmail SMTP]
-```
+![ScopeSathi cloud architecture: GitHub to Cloud Build and Artifact Registry, browser authentication, Cloud Run API, Firestore, Vertex AI, and pending scheduled mail](images/cloud-architecture.png)
+
+*Architecture illustration. Cloud Run serves React and Express together; only the backend accesses Firestore and Vertex AI. The amber mail section requires owner setup. [Image provenance and generation prompts](images/GENERATION.md).*
 
 Storage branches are configuration alternatives, not failover. Firestore failures do not switch to local storage. Browsers do not write directly to Firestore. Email currently uses SMTP, not Gmail API.
 
@@ -76,15 +61,7 @@ AI generation occurs outside transactions to avoid repeated calls during transac
 
 ## Deployment topology
 
-```mermaid
-flowchart LR
-  B[Browser] --> H[Optional Firebase Hosting]
-  H -->|API rewrite| R[Cloud Run Express service]
-  B -->|Or direct app URL| R
-  R -->|Service account ADC| F[Firestore]
-  R --> V[Vertex AI]
-  R --> S[SMTP sender]
-```
+The architecture image above shows the direct Cloud Run topology. Optional Firebase Hosting can serve the frontend and rewrite API requests to Cloud Run; it is not required for the live service.
 
 Cloud Run serves the bundled frontend and API at [the live ScopeSathi address](https://scopesathi-api-112358672382.europe-west1.run.app). The owner verified loading and sign-in; hosted SMTP and Vertex calls require separate verification. Use attached service-account credentials and a secret store.
 

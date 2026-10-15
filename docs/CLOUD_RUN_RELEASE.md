@@ -36,6 +36,10 @@ The known scopesathi installation has a safe default public origin in code for g
 
 ## Update the live site
 
+![Release workflow: test and build locally, push main, Cloud Build packages and deploys, verify revision and test the live application](images/release-workflow.png)
+
+*Code deployment and cloud configuration are separate. Secrets, IAM and Scheduler still need their own setup; the Docker build does not run the test suite.*
+
 1. Review local changes and run `npm run build` and the relevant tests.
 2. Commit and push to `main` yourself. Never stage `.env`, `.data`, private keys or password files.
 3. Cloud Build → History: find the build for the new commit SHA. Wait for Pull, Build, Push and Deploy to succeed.
