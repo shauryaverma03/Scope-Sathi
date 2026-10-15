@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   FileText,
   ShieldCheck,
@@ -300,11 +300,26 @@ export function RequestSummary({ p }: { p: Project }) {
   );
 }
 export function VersionComparison({ p }: { p: Project }) {
-  const [before, setBefore] = useState(1),
+  const [before, setBefore] = useState(Math.max(1, p.versions.length - 1)),
     [after, setAfter] = useState(p.versions.length);
+  const [changesOnly, setChangesOnly] = useState(true);
+  useEffect(() => {
+    setBefore(Math.max(1, p.versions.length - 1));
+    setAfter(p.versions.length);
+  }, [p.versions.length]);
   const a = p.versions.find((v) => v.number === before),
     b = p.versions.find((v) => v.number === after);
   if (!a || !b) return null;
+  if (p.versions.length < 2)
+    return (
+      <div className="editor-inner">
+        <h3>Version 1 is your first agreement</h3>
+        <p>
+          A reviewed amendment will create version 2. Comparisons appear here
+          once a change is approved.
+        </p>
+      </div>
+    );
   const ids = [
     ...new Set([
       ...a.requirements.map((r) => r.id),
@@ -348,28 +363,64 @@ export function VersionComparison({ p }: { p: Project }) {
             </select>
           </label>
         </div>
-        {ids.map((id) => {
-          const old = a.requirements.find((r) => r.id === id),
-            next = b.requirements.find((r) => r.id === id);
-          const kind = !old
-            ? "Added"
-            : !next
-              ? "Removed"
-              : old.text !== next.text
-                ? "Modified"
-                : "Unchanged";
-          return (
-            <article className="version-diff" key={id}>
-              <span className="badge">
-                {kind} · {id}
-              </span>
-              <div>
-                <p>{old?.text || "No previous requirement"}</p>
-                <p>{next?.text || "Requirement removed"}</p>
-              </div>
-            </article>
-          );
-        })}
+        <label className="changes-only">
+          <input
+            type="checkbox"
+            checked={changesOnly}
+            onChange={(e) => setChangesOnly(e.target.checked)}
+          />
+          Show changed requirements only
+        </label>
+        {before === after && (
+          <p className="info">Choose different versions to see changes.</p>
+        )}
+        <div
+          className="comparison-scroll"
+          tabIndex={0}
+          role="region"
+          aria-label="Scrollable version comparison"
+        >
+          {ids
+            .filter(
+              (id) =>
+                !changesOnly ||
+                a.requirements.find((r) => r.id === id)?.text !==
+                  b.requirements.find((r) => r.id === id)?.text,
+            )
+            .map((id) => {
+              const old = a.requirements.find((r) => r.id === id),
+                next = b.requirements.find((r) => r.id === id);
+              const kind = !old
+                ? "Added"
+                : !next
+                  ? "Removed"
+                  : old.text !== next.text
+                    ? "Modified"
+                    : "Unchanged";
+              return (
+                <article className="version-diff" key={id}>
+                  <span className="badge">
+                    {kind} · {id}
+                  </span>
+                  <div>
+                    <p>{old?.text || "No previous requirement"}</p>
+                    <p>{next?.text || "Requirement removed"}</p>
+                  </div>
+                </article>
+              );
+            })}
+          {changesOnly &&
+            ids.every(
+              (id) =>
+                a.requirements.find((r) => r.id === id)?.text ===
+                b.requirements.find((r) => r.id === id)?.text,
+            ) && (
+              <p>
+                No wording changes between these versions. Uncheck the filter to
+                inspect every requirement.
+              </p>
+            )}
+        </div>
       </div>
     </section>
   );

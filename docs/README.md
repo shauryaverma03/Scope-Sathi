@@ -20,6 +20,7 @@ Reviewed against source on **14 October 2026**. Screenshots are actual earlier d
 | [Email setup](EMAIL_SETUP.md) | Sender, invitations and delivery states |
 | [Google deployment](GOOGLE_SETUP.md) | Cloud Run, Hosting, IAM and limitations |
 | [Configuration](CONFIGURATION.md) | Modes and environment variables |
+| [QA audit and bug register](QA_REPORT.md) | Reproductions, fixes, feature coverage and remaining release checks |
 | [Validation](VALIDATION.md) | Test coverage and historical verification |
 | [Contributing](CONTRIBUTING.md) | Checks, screenshots and safe publication |
 

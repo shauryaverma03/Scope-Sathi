@@ -2,6 +2,9 @@ import { z } from "zod";
 export const text = z.string().trim().min(1).max(2000);
 export const RequirementSchema = z.object({
   id: z.string().min(1).max(60),
+  category: z
+    .enum(["feature", "constraint", "acceptance", "exclusion"])
+    .optional(),
   text,
   quote: text,
 });
@@ -128,6 +131,10 @@ export function normalizeProject(p: Project): Project {
 export type Role = "reviewer" | "editor" | "viewer";
 export type Actor = { uid: string; email: string; name: string };
 export type Task = {
+  description?: string;
+  reviewNote?: string;
+  reviewedBy?: string;
+  reviewedAt?: string;
   id: string;
   title: string;
   requirementIds: string[];
@@ -267,3 +274,11 @@ export function money(minor: number, currency: string) {
     minor / 100,
   );
 }
+
+export type ExtractionResult = {
+  requirements: Requirement[];
+  summary: string;
+  questions: string[];
+  context: { quote: string; reason: string }[];
+  engine: string;
+};

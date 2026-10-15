@@ -15,7 +15,7 @@ React · TypeScript · Firebase · Firestore · Gmail · Optional Gemini
 
 ## Documentation
 
-Start at the **[documentation hub](docs/README.md)** for the complete project guide.
+Start at the **[documentation hub](docs/README.md)** for the complete project guide. See the **[QA audit and bug fixes](docs/QA_REPORT.md)** for current evidence and remaining release checks.
 
 | Understand the product | Understand the implementation | Run and maintain it |
 | --- | --- | --- |
@@ -95,7 +95,7 @@ Invalid email formats are rejected. A correctly formatted address cannot be guar
 | **Gmail SMTP** | Styled welcome and invitation emails | Local-test delivery enabled and tested |
 | **Google Cloud project** | Firebase infrastructure context | Existing project: `scopesathi` |
 | **Google Antigravity** | Development tool | Included in the project toolset |
-| **Gemini** | Optional extraction and change analysis | Integration available; live credentials not configured |
+| **Gemini** | Optional extraction and change analysis | Flash-Lite extraction and change-review smoke checks pass; human review required |
 | **Cloud Run / Firebase Hosting** | Optional public deployment | Configuration supplied; not deployed |
 
 The graphic illustrates the stack; it is not a Google endorsement. Each installation's configuration determines available capabilities. Manual review works without Gemini; prepared demo examples are not live AI.
@@ -197,3 +197,7 @@ docs/      Guides, architecture, validation and images
 Licensed under the [MIT License](LICENSE).
 
 **Built for thoughtful teams. Every change deserves a clear decision.**
+
+### Clean document extraction
+
+The draft review groups wrapped clauses, separates document metadata/background, preserves exact evidence, and offers category filters for features, constraints, acceptance and exclusions. With a verified Gemini setup it also provides semantic scope summaries and review questions. Local cleanup stays clearly labelled as rule-based, and model failures never silently switch engines. See [AI workflow and setup](docs/AI_WORKFLOW.md).

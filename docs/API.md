@@ -83,3 +83,13 @@ All mutations require the last returned revision and existing access/concurrency
 | POST /projects/:id/quotes/:quoteId/invoice | Owner; reference (3–150 characters); accepted and approved scope required |
 
 Revision policy accepts currency INR/USD/EUR/GBP, nonnegative integer rateMinor up to 100000000, and an accepted member clientEmail. Positive pricing requires a finite allowance and separate client. A current client-accepted quote is required for priced extra scope. These operations do not send mail or collect payment.
+
+## Workspace improvements
+
+POST /projects/:id/amendments accepts revision, requirementId, kind (modification/removal), proposedText, message and category (correction/new_scope). Writers propose; existing reviewer decision rules apply approval. The operation creates a pending request and leaves the approved baseline unchanged.
+
+POST /projects/:id/task-plan accepts revision and items (title, requirementId), at most 30. It validates all links and rejects already-covered or duplicate requirement IDs before writing the batch. Existing task routes also support description; PATCH supports reviewNote. Leaving needs_review requires a review note of at least five characters. Task review identity/timestamp and status transition are recorded.
+
+### Explicit manual recovery
+
+POST /api/projects/:id/requests accepts optional method: ai (default) or local. Local selection performs no AI call and creates a pending manual clarification proposal; it never changes approved scope. POST /api/projects/:id/extract also accepts method: local. Parsing and explicit local/manual preparation use a separate 30/min per-user budget from AI analysis (8/min), under the overall API limits.

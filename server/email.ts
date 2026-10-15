@@ -1,6 +1,8 @@
 import nodemailer from "nodemailer";
 import { getFirestore } from "firebase-admin/firestore";
 import { randomUUID } from "node:crypto";
+import { canSendInvitation } from "./invitation-state";
+import type { Project } from "../shared/model";
 export type EmailContent = { subject: string; html: string; text: string };
 export function escapeHTML(s: string) {
   return s.replace(
@@ -29,7 +31,10 @@ export function emailReady() {
     process.env.SMTP_USER &&
     process.env.SMTP_PASS &&
     process.env.EMAIL_FROM &&
-    (publicAppURL() || (process.env.EMAIL_LOCAL_TEST === "true" && process.env.APP_MODE === "firebase" && !process.env.K_SERVICE)) &&
+    (publicAppURL() ||
+      (process.env.EMAIL_LOCAL_TEST === "true" &&
+        process.env.APP_MODE === "firebase" &&
+        !process.env.K_SERVICE)) &&
     process.env.EMAIL_ENABLED === "true"
   );
 }
@@ -218,10 +223,16 @@ export async function deliverQueuedMail() {
       if (job.kind === "invitation") {
         const n = await db.collection("notifications").doc(doc.id).get();
         const invitation = n.data();
+        const project = invitation?.projectId
+          ? await db.collection("projects").doc(invitation.projectId).get()
+          : undefined;
         if (
           !invitation ||
-          invitation.state !== "pending" ||
-          Date.parse(invitation.expiresAt) < Date.now()
+          !canSendInvitation(
+            doc.id,
+            invitation as { state: string; expiresAt: string },
+            project?.data() as Project | undefined,
+          )
         ) {
           await doc.ref.update({ status: "cancelled" });
           continue;
@@ -242,9 +253,13 @@ export async function deliverQueuedMail() {
               ? membershipEmail(payload.project, payload.inviter, payload.role)
               : accessEmail(payload.project, payload.role);
       if (!publicAppURL()) {
-        const notice = "Local test: ScopeSathi is not publicly deployed. Open http://127.0.0.1:5173/ on the host Mac, sign in with this email, and use the notification inbox for invitations. This address will not work on another device.";
+        const notice =
+          "Local test: ScopeSathi is not publicly deployed. Open http://127.0.0.1:5173/ on the host Mac, sign in with this email, and use the notification inbox for invitations. This address will not work on another device.";
         content.subject = "[Local test] " + content.subject;
-        content.html = content.html.replace("<h1", `<p style="padding:16px;background:#f3f6eb;color:#244a3e">${notice}</p><h1`);
+        content.html = content.html.replace(
+          "<h1",
+          `<p style="padding:16px;background:#f3f6eb;color:#244a3e">${notice}</p><h1`,
+        );
         content.text = notice + "\n\n" + content.text;
       }
       try {

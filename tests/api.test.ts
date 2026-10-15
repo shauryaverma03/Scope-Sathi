@@ -1,7 +1,7 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { spawn, type ChildProcess } from "node:child_process";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Project } from "../shared/model";
@@ -383,4 +383,122 @@ test("pricing endpoints enforce schema, client identity and concurrency", async 
     409,
   );
   assert.equal((await req("/projects/" + p.id)).data.revision, p.revision);
+});
+
+test("workspace amendments, task planning and explicit impact review persist over API reload", async () => {
+  let p = (
+    await req("/projects", "POST", {
+      name: "Workspace API test",
+      client: "",
+      description: "",
+    })
+  ).data as Project;
+  const brief =
+    "Customers must search products.\nSCOPESATHI / document heading";
+  p = (
+    await req("/projects/" + p.id + "/baseline", "POST", {
+      revision: p.revision,
+      brief,
+      requirements: [
+        {
+          id: "REQ-001",
+          text: "Customers must search products.",
+          quote: "Customers must search products.",
+        },
+        {
+          id: "REQ-002",
+          text: "SCOPESATHI / document heading",
+          quote: "SCOPESATHI / document heading",
+        },
+      ],
+    })
+  ).data;
+  p = (
+    await req("/projects/" + p.id + "/task-plan", "POST", {
+      revision: p.revision,
+      items: [{ requirementId: "REQ-001", title: "Build product search" }],
+    })
+  ).data;
+  const task = p.tasks[0];
+  assert.equal(
+    (
+      await req("/projects/" + p.id + "/task-plan", "POST", {
+        revision: p.revision,
+        items: [{ requirementId: "REQ-001", title: "Duplicate task" }],
+      })
+    ).status,
+    409,
+  );
+  p = (
+    await req("/projects/" + p.id + "/amendments", "POST", {
+      revision: p.revision,
+      requirementId: "REQ-001",
+      kind: "modification",
+      proposedText: "Customers must search and filter products.",
+      message: "Please add category filters to product search.",
+      category: "new_scope",
+    })
+  ).data;
+  assert.equal(p.versions.length, 1);
+  assert.equal(p.requests[0].status, "pending");
+  assert.equal(
+    (
+      await req("/projects/" + p.id + "/amendments", "POST", {
+        revision: p.revision - 1,
+        requirementId: "REQ-001",
+        kind: "removal",
+        proposedText: "",
+        message: "Remove product search from scope.",
+        category: "new_scope",
+      })
+    ).status,
+    409,
+  );
+  p = (
+    await req(
+      "/projects/" + p.id + "/requests/" + p.requests[0].id + "/decision",
+      "POST",
+      {
+        revision: p.revision,
+        decision: "approved",
+        note: "Client and reviewer confirmed filters",
+      },
+    )
+  ).data;
+  assert.equal(p.tasks[0].status, "needs_review");
+  assert.equal(p.versions.length, 2);
+  const edit = {
+    revision: p.revision,
+    title: task.title,
+    status: "in_progress",
+    requirementIds: ["REQ-001"],
+    description: "Implement category filters with product search.",
+  };
+  assert.equal(
+    (await req("/projects/" + p.id + "/tasks/" + task.id, "PATCH", edit))
+      .status,
+    400,
+  );
+  p = (
+    await req("/projects/" + p.id + "/tasks/" + task.id, "PATCH", {
+      ...edit,
+      reviewNote: "Reviewed v2; updated work to include category filters.",
+    })
+  ).data;
+  assert.equal(p.tasks[0].status, "in_progress");
+  assert.match(p.tasks[0].reviewNote!, /v2/);
+  const reopened = (await req("/projects/" + p.id)).data as Project;
+  assert.equal(
+    reopened.versions[0].requirements[0].text,
+    "Customers must search products.",
+  );
+  assert.match(reopened.tasks[0].description!, /category filters/);
+  assert.ok(
+    reopened.events.some((e) => e.action === "Requirement amendment proposed"),
+  );
+  assert.ok(
+    reopened.events.some(
+      (e) => e.action === "Task updated" && e.detail.includes("v2"),
+    ),
+  );
 });

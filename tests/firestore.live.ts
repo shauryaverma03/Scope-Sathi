@@ -15,6 +15,7 @@ import {
   respondRoundQuote,
   recordInvoice,
 } from "../server/domain";
+import { proposeAmendment } from "../server/workspace";
 import { analyse, extract } from "../server/ai";
 import { SAMPLE_BRIEF, SAMPLE_REQUEST } from "../shared/model";
 if (!process.env.GOOGLE_APPLICATION_CREDENTIALS)
@@ -38,7 +39,7 @@ if (process.argv[2] === "--read") {
     ...owner,
     uid: process.argv[4],
   });
-  assert.equal(p.versions.length, 2);
+  assert.equal(p.versions.length, 3);
   assert.equal(p.tasks[0].status, "needs_review");
   assert.equal(p.requests[0].status, "approved");
   assert.equal(p.quotes?.[0].state, "accepted");
@@ -134,6 +135,28 @@ if (process.argv[2] === "--read") {
     p = await store.update(p.id, owner, p.revision, (p) =>
       recordInvoice(p, owner, p.quotes![0].id, "VALIDATION-001"),
     );
+    p = await store.update(p.id, owner, p.revision, (p) =>
+      proposeAmendment(p, owner, {
+        requirementId: p.requirements[0].id,
+        kind: "modification",
+        proposedText:
+          p.requirements[0].text + " Tracking links expire after 24 hours.",
+        message:
+          "Team correction: clarify the agreed guest tracking expiry as twenty-four hours.",
+        category: "correction",
+      }),
+    );
+    p = await store.update(p.id, owner, p.revision, (p) =>
+      decide(
+        p,
+        owner,
+        p.requests[0].id,
+        "approved",
+        "Synthetic amendment reviewed; retain original history.",
+      ),
+    );
+    assert.equal(p.versions.length, 3);
+    assert.equal(p.requirements[0].id, "REQ-001");
     const saved = await getFirestore().collection("projects").doc(p.id).get();
     assert.equal(saved.exists, true);
     assert.equal(saved.data()?.quotes[0].invoiceReference, "VALIDATION-001");
@@ -148,7 +171,7 @@ if (process.argv[2] === "--read") {
     );
     assert.equal(code, 0);
     console.log(
-      "Live Firestore create, baseline, request, quote, client acceptance, approval, invoice reference, task update, unauthorized access and fresh-process persistence checks passed. Google browser sign-in is tested separately.",
+      "Live Firestore create, baseline, request, quote, client acceptance, approval, invoice reference, reviewed requirement amendment, task update, unauthorized access and fresh-process persistence checks passed. Google browser sign-in is tested separately.",
     );
   } finally {
     if (created) await store.delete(project.id, owner);

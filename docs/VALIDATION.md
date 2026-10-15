@@ -1,6 +1,10 @@
 # Validation record
 
-## Latest summary — documentation reviewed 14 October 2026
+## Current QA snapshot — 15 October 2026
+
+72 automated tests pass, production build passes, and live Firestore/invitation fixture checks pass. See [QA_REPORT.md](QA_REPORT.md) for bug reproductions, fixes and browser/email limitations. Older entries below are historical.
+
+## Historical summary — documentation reviewed 14 October 2026
 
 The entries below are chronological historical records; older configuration limitations may have been resolved by later entries. They do not establish the state of another installation.
 
@@ -86,3 +90,23 @@ Live Firestore integration checks now pass: create, baseline, request, approval,
 37 automated tests and build pass. Live Firestore/Auth fixture tests passed for verified account lookup, pending access denial, wrong-account acceptance rejection, one-time acceptance, revocation, welcome deduplication and waiting-setup email status. Test records/accounts were removed. No actual emails were sent: sender/public app URL are not configured. Existing permissions are preserved and role notices are added on login.
 
 Live tests also verified duplicate legacy membership synchronization creates one role notice. Mail templates were rendered in a browser; loading preview typography and animation were verified. Main preview reports Firestore connected and email delivery not configured.
+
+## Document cleanup and Gemini setup - 15 October 2026
+
+52 automated tests and production build pass. The two real sample PDFs now yield eight scope/acceptance/boundary clauses, with ten metadata/background passages shown separately; the earlier line splitter produced 27 or 21 entries. Tests cover wrapped exact quotes, categories, deduplication, empty metadata, short imperative clauses, schema validation, fabricated evidence and no silent fallback after a model failure.
+
+The supplied key listed models and passed a small structured-output generation. Full setup probes encountered unavailable legacy generation (404), busy responses (503), cancelled requests (499) and a gateway timeout (504). Consequently the configuration script did not save or activate the Gemini backend configuration. Semantic extraction and change matching remain unverified until both synthetic setup checks pass. No billing setting was changed and no real client brief was sent in setup. Browser visual regression remains unverified because the earlier browser action was policy-blocked.
+
+## Workspace usability and amendments - 15 October 2026
+
+60 automated tests and production build pass. New checks cover amendment proposal vs approval, stable IDs and previous versions, correction allowance, task impact, viewer/editor restrictions, duplicate task plans, stale revisions, explicit task review notes, API reload persistence, and rendered component accessibility/role states. These rendered-component checks are not full browser interaction or mobile visual tests.
+
+Live Firestore checks passed for quote/approval persistence and a reviewed requirement amendment followed by a fresh-process read. Only the disposable validation fixture was removed; user baselines remain unchanged. Both local API and frontend report HTTP 200. Fresh browser layout/scroll interaction remains unverified due to the previously blocked browser action.
+
+## PDF extraction follow-up — 15 October 2026
+
+62 automated tests pass, including the exact original Sunday Store PDF upload → text extraction → six-feature regression, wrapped negative clauses, numbered coverage validation, and no implicit baseline approval. Live Gemini 3.8 Flash extraction returned six source-validated features. A separate change-analysis probe encountered service errors; do not report it as verified. Gemini backend configuration is now enabled and ignored by Git. Browser interaction was not verified in this follow-up.
+
+Slow-service follow-up: 64 tests pass, including a deliberately stalled AI transport that ignores cancellation, propagated service errors, and explicit local PDF extraction. The earlier live PDF retry took approximately 90 seconds and returned 504 before the new 40-second application deadline was added.
+
+Gemini integration follow-up: 66 tests pass. Additional tests cover provider schema compatibility while retaining strict application bounds, whitespace-only quote recovery, regex punctuation, and rejection of invented source wording. Flash-Lite setup passed extraction and change analysis; two full PDF live calls returned six requirements in approximately 8.9 and 6.6 seconds. A separate live change call returned source-validated clarification/questions. App restarted with gemini-3.5-flash-lite; no user baseline modified.

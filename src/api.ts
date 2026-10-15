@@ -24,6 +24,7 @@ export async function api<T>(
   if (body && !(body instanceof FormData))
     headers["Content-Type"] = "application/json";
   const res = await fetch(`/api${path}`, {
+    signal: AbortSignal.timeout(55000),
     method,
     headers,
     body: body

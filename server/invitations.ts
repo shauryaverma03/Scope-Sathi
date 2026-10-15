@@ -9,6 +9,7 @@ import {
 } from "../shared/model";
 import { AppError, event, now } from "./domain";
 import { mailJob, emailReady } from "./email";
+import { currentInvitationState } from "./invitation-state";
 export type Invitation = {
   id: string;
   email: string;
@@ -41,7 +42,10 @@ export function assertRecipient(
     );
 }
 export function assertAccept(invitation: Invitation, a: Actor) {
-  if ((invitation.uid && invitation.uid !== a.uid) || invitation.email !== a.email)
+  if (
+    (invitation.uid && invitation.uid !== a.uid) ||
+    invitation.email !== a.email
+  )
     throw new AppError(
       403,
       "Sign in with the Google account that received this invitation.",
@@ -144,10 +148,11 @@ export async function invite(
         400,
         "RECIPIENT_NOT_REGISTERED: This person has not signed up. Check the email address or send a signup invitation.",
       );
-    if (e.code !== "auth/user-not-found") throw new AppError(
-      503,
-      "Google account verification is unavailable. No invitation was created.",
-    );
+    if (e.code !== "auth/user-not-found")
+      throw new AppError(
+        503,
+        "Google account verification is unavailable. No invitation was created.",
+      );
   }
   if (target) assertRecipient(target, email);
   const invitation: Invitation = {
@@ -229,6 +234,16 @@ export async function inbox(a: Actor) {
   const result: any[] = [];
   for (const doc of rows.docs) {
     const data = doc.data();
+    if (data.kind === "invitation" && data.state === "pending") {
+      const project = await db.collection("projects").doc(data.projectId).get();
+      data.state = currentInvitationState(
+        doc.id,
+        data.state,
+        project.exists
+          ? normalizeProject(project.data() as Project)
+          : undefined,
+      );
+    }
     const mail = (await db.collection("mailOutbox").doc(doc.id).get()).data();
     result.push({
       ...data,

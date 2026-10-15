@@ -67,3 +67,17 @@ No OCR, meeting recording, Jira synchronization, automatic billing, automatic ap
 ## Estimate additional work
 
 The cost meter in Overview, Change requests and Settings shows included rounds, pending extra work and quote totals. Owners set currency, price and the designated client in Revision policy after accepted project access. Reviewers propose priced extra rounds; the client accepts or declines before scope approval. Owners can record an existing invoice reference after approval. See [the pricing guide](REVISION_PRICING.md).
+
+## Reviewed amendments and workspace improvements
+
+Approved scope is preserved history, so it is changed through **Propose edit** or **Propose removal**, rather than an unrecorded overwrite. Enter replacement wording (for edits), the exact client request or a team correction explanation, and classify the change. Submit it for review; only approval applies a new version. IDs survive edits, old versions remain available, and linked tasks are flagged. Old heading/footer entries can be removed as reviewed extraction corrections when they were never part of the agreement.
+
+**Change requests** now begins with a direct submission action and explains the message → comparison → decision workflow. Search includes title, source, request text and affected requirement IDs. Rows show findings and open clarification counts. Manual proposals open in their editor so reviewers can complete them; there is no claim of live AI.
+
+**Tasks & impact** shows linked-scope coverage, unlinked work, completed work and pending reviews. Preview a deterministic task plan for uncovered feature requirements; edit/select the task titles before saving. This is not an AI estimate. Existing tasks are not overwritten, and duplicate plans are rejected. Task cards display actual requirement wording and the approved request affecting the work. Descriptions, review notes and status updates persist; moving a task out of Needs Review requires a review note. Viewers can inspect task details without write access.
+
+**Decision history** combines baseline approvals and request decisions chronologically, with reasons, reviewers and evidence links. Search/filter activity, access, task and pricing records separately. The archive and decision trail are independently focusable bounded scroll regions. Scroll chaining is contained; the whole page still scrolls when the pointer is outside those regions.
+
+Version comparison starts with the latest change, hides unchanged clauses by default and uses a bounded region. A single version explains that there is nothing to compare yet. Revision-cost details are available in a collapsible panel so they do not hide the section's main action.
+
+Existing saved projects and approved baselines are not automatically rewritten by these UI improvements.

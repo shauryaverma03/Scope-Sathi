@@ -103,10 +103,41 @@ try {
     invitationDecision(second.invitations[1].id, recipient, "accepted"),
     /already/,
   );
-  const current = await store.get(p.id,owner);
-  await store.update(p.id,owner,current.revision,p=>{p.members[recipientEmail]='viewer';});
-  await Promise.all([syncExistingMemberships(recipient),syncExistingMemberships(recipient)]);
-  assert.equal((await inbox(recipient)).filter(n=>n.kind==='membership').length,1);
+  const beforeRemoval = await store.get(p.id, owner);
+  const third = await invite(
+    p.id,
+    owner,
+    beforeRemoval.revision,
+    recipientEmail,
+    "viewer",
+  );
+  const removedInvitation = third.invitations.at(-1)!;
+  await store.update(p.id, owner, third.revision, (project) => {
+    delete project.members[recipientEmail];
+    project.memberEmails = project.memberEmails.filter(
+      (email) => email !== recipientEmail,
+    );
+    project.invitations.find(
+      (item) => item.id === removedInvitation.id,
+    )!.state = "revoked";
+  });
+  assert.equal(
+    (await inbox(recipient)).find((n) => n.id === removedInvitation.id)?.state,
+    "revoked",
+  );
+  const current = await store.get(p.id, owner);
+  await store.update(p.id, owner, current.revision, (p) => {
+    p.members[recipientEmail] = "viewer";
+    p.memberEmails.push(recipientEmail);
+  });
+  await Promise.all([
+    syncExistingMemberships(recipient),
+    syncExistingMemberships(recipient),
+  ]);
+  assert.equal(
+    (await inbox(recipient)).filter((n) => n.kind === "membership").length,
+    1,
+  );
   const outbox = await db
     .collection("mailOutbox")
     .where("recipientEmail", "==", recipientEmail)

@@ -1,3 +1,9 @@
+import {
+  ApprovedWorkspace,
+  EnhancedHistory,
+  TaskPlanPanel,
+} from "./WorkspaceViews";
+import type { ExtractionResult } from "../shared/model";
 import { NotificationInbox, InvitationList } from "./Notifications";
 import {
   EmptyWorkspace,
@@ -61,7 +67,13 @@ import type {
 } from "../shared/model";
 import { SAMPLE_BRIEF, SAMPLE_REQUEST } from "../shared/model";
 import { api, setupAuth, login, logout, download } from "./api";
-const ErrorContext = React.createContext("");
+export const ErrorContext = React.createContext({ message: "", sequence: 0 });
+export function dialogError(
+  error: { message: string; sequence: number },
+  openedAt: number,
+) {
+  return error.sequence > openedAt ? error.message : "";
+}
 type Tab =
   "overview" | "baseline" | "requests" | "tasks" | "history" | "settings";
 const tabs = [
@@ -93,7 +105,7 @@ function Empty({
     <div className="empty">
       <Files size={28} />
       <h3>{title}</h3>
-      <p>{children}</p>
+      <div className="empty-content">{children}</div>
     </div>
   );
 }
@@ -106,7 +118,11 @@ function App() {
   const [tab, setTab] = useState<Tab>("overview");
   const [modal, setModal] = useState<"project" | "request" | null>(null);
   const [reviewId, setReviewId] = useState<string | null>(null);
-  const [error, setError] = useState("");
+  const [errorState, setErrorState] = useState({ message: "", sequence: 0 });
+  const error = errorState.message;
+  function setError(message: string) {
+    setErrorState((previous) => ({ message, sequence: previous.sequence + 1 }));
+  }
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState("");
   const [loading, setLoading] = useState(true);
@@ -300,14 +316,7 @@ function App() {
   if (loading)
     return <LoadingScreen stage="Loading your projects and permissions" />;
   return (
-    <ErrorContext.Provider value={error}>
-      <FirstVisit
-        navigate={(next) => {
-          setTab(next as Tab);
-          setModal(null);
-          setReviewId(null);
-        }}
-      />
+    <ErrorContext.Provider value={errorState}>
       <div className="shell">
         <aside className="sidebar">
           <Brand />
@@ -483,16 +492,18 @@ function App() {
                                 : "Manage your project, access, and Google Cloud connection."}
                     </p>
                   </div>
-                  <button
-                    className="button primary"
-                    onClick={() =>
-                      setModal(p && p.versions.length ? "request" : "project")
-                    }
-                    disabled={busy || (!!p && !canEdit)}
-                  >
-                    <Plus size={17} />
-                    {p && p.versions.length ? "New request" : "New project"}
-                  </button>
+                  {(!p || !["tasks", "history", "settings"].includes(tab)) && (
+                    <button
+                      className="button primary"
+                      onClick={() =>
+                        setModal(p && p.versions.length ? "request" : "project")
+                      }
+                      disabled={busy || (!!p && !canEdit)}
+                    >
+                      <Plus size={17} />
+                      {p && p.versions.length ? "New request" : "New project"}
+                    </button>
+                  )}
                 </div>
                 {projects.length > 0 && (
                   <div className="project-switch">
@@ -533,14 +544,21 @@ function App() {
                 ) : (
                   <>
                     {["overview", "requests", "settings"].includes(tab) && (
-                      <CostPanel
-                        p={p}
-                        email={email}
-                        owner={p.ownerId === (user?.uid || "local-demo")}
-                        canReview={!!canReview}
-                        run={run}
-                        update={update}
-                      />
+                      <details className="panel cost-disclosure">
+                        <summary>
+                          Revision allowance and extra-work estimates ·{" "}
+                          {revisionSummary(p).remaining ?? "Unlimited"} rounds
+                          remaining
+                        </summary>
+                        <CostPanel
+                          p={p}
+                          email={email}
+                          owner={p.ownerId === (user?.uid || "local-demo")}
+                          canReview={!!canReview}
+                          run={run}
+                          update={update}
+                        />
+                      </details>
                     )}
                     {tab === "overview" && (
                       <Overview
@@ -553,6 +571,12 @@ function App() {
                     )}
                     {tab === "baseline" && (
                       <Baseline
+                        onCreated={(next) => {
+                          update(next);
+                          setTab("requests");
+                          setReviewId(next.requests[0].id);
+                        }}
+                        config={config}
                         key={p.id}
                         p={p}
                         busy={busy}
@@ -564,6 +588,7 @@ function App() {
                     )}
                     {tab === "requests" && (
                       <Requests
+                        key={p.id}
                         p={p}
                         open={setReviewId}
                         newRequest={() => setModal("request")}
@@ -572,6 +597,7 @@ function App() {
                     )}
                     {tab === "tasks" && (
                       <Tasks
+                        key={p.id}
                         p={p}
                         busy={busy}
                         run={run}
@@ -579,7 +605,9 @@ function App() {
                         canEdit={!!canEdit}
                       />
                     )}
-                    {tab === "history" && <HistoryView p={p} />}
+                    {tab === "history" && (
+                      <EnhancedHistory key={p.id} p={p} open={setReviewId} />
+                    )}
                     {tab === "settings" && (
                       <>
                         <section className="panel">
@@ -603,6 +631,7 @@ function App() {
                           owner={p.ownerId === (user?.uid || "local-demo")}
                         />
                         <SettingsView
+                          key={p.id}
                           p={p}
                           config={config!}
                           owner={p.ownerId === (user?.uid || "local-demo")}
@@ -633,6 +662,13 @@ function App() {
                 </footer>
               </>
             )}
+            <FirstVisit
+              navigate={(next) => {
+                setTab(next as Tab);
+                setModal(null);
+                setReviewId(null);
+              }}
+            />
           </main>
         </div>
         {toast && (
@@ -712,6 +748,7 @@ function App() {
             busy={busy}
           >
             <RequestForm
+              key={p.id}
               p={p}
               demo={config.ai === "manual"}
               busy={busy}
@@ -1073,6 +1110,16 @@ function RequestRow({ r, open }: { r: ChangeRequest; open: () => void }) {
         <small>
           {r.source} · {date(r.createdAt)} · compared with v{r.baselineVersion}
         </small>
+        <small>
+          {r.analysis.findings.length} findings ·{" "}
+          {
+            r.analysis.findings.filter(
+              (f) => f.questions.length || f.kind === "clarification",
+            ).length
+          }{" "}
+          need clarification ·{" "}
+          {r.category === "correction" ? "Correction" : "New scope"}
+        </small>
       </div>
       <Badge
         tone={
@@ -1109,10 +1156,38 @@ function Requests({
   const list = p.requests.filter(
     (r) =>
       (filter === "all" || r.status === filter) &&
-      r.title.toLowerCase().includes(query.toLowerCase()),
+      [
+        r.title,
+        r.text,
+        r.source,
+        ...r.analysis.findings.map((f) => f.requirementId + " " + f.title),
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(query.toLowerCase()),
   );
   return (
     <>
+      <section className="panel workspace-intro">
+        <div>
+          <h2>From client message to reviewed decision</h2>
+          <p>
+            Submit the exact request, confirm affected requirements, then
+            approve, reject or ask for clarification.
+          </p>
+          <p className="helper">
+            Every request starts as a proposal for review. Submitting a request
+            never changes approved scope.
+          </p>
+        </div>
+        <button
+          className="button primary"
+          disabled={!canEdit || !p.versions.length}
+          onClick={newRequest}
+        >
+          <Plus size={16} /> Submit a change request
+        </button>
+      </section>
       <RequestSummary p={p} />
       <section className="panel">
         <div className="list-toolbar">
@@ -1149,9 +1224,18 @@ function Requests({
           ))
         ) : (
           <Empty title="Nothing here yet">
-            {p.versions.length
-              ? "New client requests will appear here for review."
-              : "Approve your project baseline before analysing a request."}
+            <p>
+              {query || filter !== "all"
+                ? "No matches. Clear the search or choose All requests."
+                : p.versions.length
+                  ? "No request has been submitted yet. Start with the client message using the button above."
+                  : "Approve your project baseline before submitting a request."}
+            </p>
+            {canEdit && p.versions.length > 0 && !query && filter === "all" && (
+              <button className="button primary" onClick={newRequest}>
+                Create your first request
+              </button>
+            )}
           </Empty>
         )}
       </section>
@@ -1160,6 +1244,8 @@ function Requests({
 }
 type Run = (fn: () => Promise<void>, message?: string) => Promise<void>;
 function Baseline({
+  config,
+  onCreated,
   p,
   busy,
   canReview,
@@ -1167,6 +1253,8 @@ function Baseline({
   run,
   update,
 }: {
+  config: Config;
+  onCreated: (next: Project) => void;
   p: Project;
   busy: boolean;
   canReview: boolean;
@@ -1175,66 +1263,46 @@ function Baseline({
   update: (p: Project) => void;
 }) {
   const [brief, setBrief] = useState(p.brief || "");
+  const [review, setReview] = useState<ExtractionResult>();
+  const [categoryFilter, setCategoryFilter] = useState("all");
   const [requirements, setRequirements] = useState<Requirement[]>([]);
   const [extractedBrief, setExtractedBrief] = useState("");
+  const [extracting, setExtracting] = useState(false);
+  const [extractionError, setExtractionError] = useState("");
+  async function prepare(method: "ai" | "local") {
+    setExtracting(true);
+    setExtractionError("");
+    try {
+      const data = await api<ExtractionResult>(
+        `/projects/${p.id}/extract`,
+        "POST",
+        { brief, method },
+      );
+      setRequirements(data.requirements);
+      setReview(data);
+      setCategoryFilter("all");
+      setExtractedBrief(brief);
+    } catch (e) {
+      setExtractionError(
+        e instanceof Error && e.name === "TimeoutError"
+          ? "The server took too long. Retry or choose Prepare without AI. Your brief is unchanged."
+          : e instanceof Error
+            ? e.message
+            : "Analysis failed. Please retry.",
+      );
+    } finally {
+      setExtracting(false);
+    }
+  }
   if (p.versions.length)
     return (
-      <>
-        <VersionComparison p={p} />
-        <details className="panel source-panel">
-          <summary>Original client intake</summary>
-          <IntakePanel p={p} run={run} update={update} canEdit={false} />
-        </details>
-        <div className="section-summary">
-          <div>
-            <Badge tone="green">
-              <ShieldCheck size={13} /> Approved baseline · v{p.versions.length}
-            </Badge>
-            <p>
-              Approved by {p.versions.at(-1)?.approvedBy} on{" "}
-              {date(p.versions.at(-1)!.approvedAt)}
-            </p>
-          </div>
-          <button
-            className="button"
-            onClick={() =>
-              download(
-                `${p.name}-baseline.json`,
-                JSON.stringify(p.versions.at(-1), null, 2),
-              )
-            }
-          >
-            <Download size={16} />
-            Export baseline
-          </button>
-        </div>
-        <div className="requirements-grid">
-          {p.requirements.map((r) => (
-            <article className="requirement-card" key={r.id}>
-              <div>
-                <span className="mono">{r.id}</span>
-                <CheckCircle2 size={17} />
-              </div>
-              <h3>{r.text}</h3>
-              <details>
-                <summary>
-                  <Link2 size={13} />
-                  Source passage
-                </summary>
-                <blockquote>{r.quote}</blockquote>
-              </details>
-              <small>
-                {p.tasks.filter((t) => t.requirementIds.includes(r.id)).length}{" "}
-                linked tasks
-              </small>
-            </article>
-          ))}
-        </div>
-        <details className="panel source-panel">
-          <summary>View original brief</summary>
-          <pre>{p.brief}</pre>
-        </details>
-      </>
+      <ApprovedWorkspace
+        p={p}
+        canEdit={canEdit}
+        busy={busy}
+        run={run}
+        onCreated={onCreated}
+      />
     );
   return (
     <>
@@ -1333,26 +1401,55 @@ function Baseline({
             <button
               className="button primary push-right"
               disabled={busy || brief.trim().length < 20 || !canEdit}
-              onClick={() =>
-                run(async () => {
-                  const data = await api<{ requirements: Requirement[] }>(
-                    `/projects/${p.id}/extract`,
-                    "POST",
-                    { brief },
-                  );
-                  setRequirements(data.requirements);
-                  setExtractedBrief(brief);
-                })
-              }
+              onClick={() => run(() => prepare("ai"))}
             >
               <Sparkles size={16} />
-              Extract requirements
+              {busy
+                ? "Preparing requirements…"
+                : config.ai === "manual"
+                  ? "Prepare clean requirements"
+                  : "Analyse with Gemini"}
             </button>
           </div>
+          {config.ai !== "manual" && (
+            <button
+              className="button"
+              disabled={busy || !canEdit || brief.trim().length < 20}
+              onClick={() => run(() => prepare("local"))}
+            >
+              Prepare without AI
+            </button>
+          )}
+          {extracting && (
+            <p role="status" className="info">
+              Reading the brief and validating source quotes. Gemini has a
+              40-second limit; a response or error will appear here.
+            </p>
+          )}
+          {extractionError && (
+            <div role="alert" className="error">
+              {extractionError}
+            </div>
+          )}
           <p className="helper">
             Up to 2 MB / 16,000 characters. Text is extracted; the original file
             is not retained.
           </p>
+          <div className="extraction-mode info">
+            <Sparkles size={18} />
+            <div>
+              <strong>
+                {config.ai === "manual"
+                  ? "Document cleanup available · Gemini needs setup"
+                  : `Gemini configured · ${config.model}`}
+              </strong>
+              <p>
+                {config.ai === "manual"
+                  ? "Wrapped clauses are grouped and headings are separated locally. This is rule-based cleanup, not semantic AI. Configure a private Gemini key/model to enable analysis."
+                  : "Gemini proposes requirements and review questions. Exact evidence is validated; approval stays with your reviewer."}
+              </p>
+            </div>
+          </div>
           {requirements.length > 0 && (
             <div className="extracted">
               <h3>Review your proposed baseline</h3>
@@ -1360,8 +1457,74 @@ function Baseline({
                 Correct wording and check each quote. Extraction does not
                 approve the scope.
               </p>
+              {review && (
+                <section className="analysis-review">
+                  <span className="badge">{review.engine}</span>
+                  <h3>{requirements.length} proposed clauses</h3>
+                  <p>{review.summary}</p>
+                  {!!review.questions.length && (
+                    <div>
+                      <strong>Questions to consider before approval</strong>
+                      <ul>
+                        {review.questions.map((q) => (
+                          <li key={q}>{q}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {!!review.context.length && (
+                    <details>
+                      <summary>
+                        Supporting agreement and document context (
+                        {review.context.length} passages)
+                      </summary>
+                      <p className="helper">
+                        Acceptance criteria and exclusions still apply. They
+                        remain in the original brief and are included when
+                        Gemini reviews later change requests.
+                      </p>
+                      {review.context.map((c, i) => (
+                        <blockquote key={i}>
+                          <p>{c.quote}</p>
+                          <small>{c.reason}</small>
+                        </blockquote>
+                      ))}
+                    </details>
+                  )}
+                </section>
+              )}
+              <div className="filter-tabs" aria-label="Requirement categories">
+                {[
+                  "all",
+                  "feature",
+                  "constraint",
+                  "acceptance",
+                  "exclusion",
+                ].map((c) => (
+                  <button
+                    key={c}
+                    className={categoryFilter === c ? "selected" : ""}
+                    onClick={() => setCategoryFilter(c)}
+                  >
+                    {c.replace(/^./, (x) => x.toUpperCase())} (
+                    {
+                      requirements.filter(
+                        (r) => c === "all" || (r.category || "feature") === c,
+                      ).length
+                    }
+                    )
+                  </button>
+                ))}
+              </div>
               {requirements.map((r, i) => (
-                <div className="extracted-item" key={r.id}>
+                <div
+                  hidden={
+                    categoryFilter !== "all" &&
+                    (r.category || "feature") !== categoryFilter
+                  }
+                  className="extracted-item"
+                  key={r.id}
+                >
                   <div className="row-between">
                     <span className="mono">{r.id}</span>
                     <button
@@ -1375,6 +1538,34 @@ function Baseline({
                       <Trash2 size={15} />
                     </button>
                   </div>
+                  <label>
+                    Requirement category
+                    <select
+                      value={r.category || "feature"}
+                      disabled={!canEdit}
+                      onChange={(e) =>
+                        setRequirements((rs) =>
+                          rs.map((q, j) =>
+                            j === i
+                              ? {
+                                  ...q,
+                                  category: e.target
+                                    .value as Requirement["category"],
+                                }
+                              : q,
+                          ),
+                        )
+                      }
+                    >
+                      {["feature", "constraint", "acceptance", "exclusion"].map(
+                        (c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ),
+                      )}
+                    </select>
+                  </label>
                   <label>
                     Requirement
                     <textarea
@@ -1456,7 +1647,7 @@ function Baseline({
     </>
   );
 }
-function RequestForm({
+export function RequestForm({
   p,
   demo,
   busy,
@@ -1474,11 +1665,13 @@ function RequestForm({
   const [roundId, setRoundId] = useState("");
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
+  const [method, setMethod] = useState(demo ? "local" : "ai");
   return (
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        submit({ title, text, source, category, roundId });
+        if (!uploading)
+          submit({ title, text, source, category, roundId, method });
       }}
     >
       {demo && (
@@ -1490,6 +1683,23 @@ function RequestForm({
             approving.
           </span>
         </div>
+      )}
+      {!demo && (
+        <label>
+          Review method
+          <select
+            value={method}
+            onChange={(e) => setMethod(e.target.value)}
+            disabled={busy || uploading}
+          >
+            <option value="ai">Analyse with Gemini</option>
+            <option value="local">Manual review — no AI call</option>
+          </select>
+          <small className="helper">
+            If Gemini is unavailable, submit for manual review. A reviewer must
+            prepare and approve the proposal.
+          </small>
+        </label>
       )}
       <label>
         Request title
@@ -1612,15 +1822,17 @@ function RequestForm({
         </button>
         <span className="helper">Compared with v{p.versions.length}</span>
       </div>
-      <button className="button primary full" disabled={busy}>
+      <button className="button primary full" disabled={busy || uploading}>
         <Sparkles size={16} />
-        {demo ? "Submit for review" : "Analyse request"}{" "}
+        {method === "local"
+          ? "Submit for manual review"
+          : "Analyse request"}{" "}
         <ArrowRight size={16} />
       </button>
     </form>
   );
 }
-function Modal({
+export function Modal({
   title,
   subtitle,
   children,
@@ -1633,7 +1845,9 @@ function Modal({
   close: () => void;
   busy: boolean;
 }) {
-  const error = React.useContext(ErrorContext);
+  const errorState = React.useContext(ErrorContext);
+  const openedAt = React.useRef(errorState.sequence);
+  const error = dialogError(errorState, openedAt.current);
   const ref = React.useRef<HTMLDivElement>(null);
   useEffect(() => {
     const last = document.activeElement as HTMLElement | null;
@@ -1700,7 +1914,7 @@ function Modal({
     </div>
   );
 }
-function Review({
+export function Review({
   p,
   request: r,
   canReview,
@@ -1728,7 +1942,10 @@ function Review({
   const [agreement, setAgreement] = useState("");
   const [category, setCategory] = useState(r.category || "new_scope");
   const [roundId, setRoundId] = useState(r.roundId || r.id);
-  const [editing, setEditing] = useState(false);
+  const [editRequested, setEditing] = useState(
+    r.status === "pending" && r.engine.includes("Manual"),
+  );
+  const editing = canReview && r.status === "pending" && editRequested;
   const stale = r.baselineVersion !== p.versions.length;
   const openQuestions = findings.some(
     (f) => f.questions.length || f.kind === "clarification",
@@ -2201,6 +2418,9 @@ function Tasks({
   const [adding, setAdding] = useState(false);
   const [title, setTitle] = useState("");
   const [ids, setIds] = useState<string[]>([]);
+  const [query, setQuery] = useState("");
+  const [description, setDescription] = useState("");
+  const [reviewNote, setReviewNote] = useState("");
   const [status, setStatus] = useState<Task["status"]>("todo");
   const start = (t?: Task) => {
     setEdit(t || null);
@@ -2208,9 +2428,53 @@ function Tasks({
     setTitle(t?.title || "");
     setIds(t?.requirementIds || []);
     setStatus(t?.status || "todo");
+    setDescription(t?.description || "");
+    setReviewNote("");
   };
   return (
     <>
+      <div className="request-metrics">
+        {[
+          [
+            "Requirements with work",
+            p.requirements.filter((r) =>
+              p.tasks.some((t) => t.requirementIds.includes(r.id)),
+            ).length +
+              " / " +
+              p.requirements.length,
+          ],
+          [
+            "Needs scope review",
+            p.tasks.filter((t) => t.status === "needs_review").length,
+          ],
+          [
+            "Unlinked tasks",
+            p.tasks.filter((t) => !t.requirementIds.length).length,
+          ],
+          ["Completed", p.tasks.filter((t) => t.status === "done").length],
+        ].map(([label, n]) => (
+          <div key={label}>
+            <small>{label}</small>
+            <strong>{n}</strong>
+          </div>
+        ))}
+      </div>
+      <TaskPlanPanel
+        p={p}
+        canEdit={canEdit}
+        busy={busy}
+        run={run}
+        update={update}
+      />
+      <label className="search task-search">
+        <Search size={16} />
+        <input
+          aria-label="Search tasks and requirement links"
+          placeholder="Search tasks or requirement IDs…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+      </label>
       <div className="section-summary">
         <p>
           Approved changes flag linked tasks. Review the wording before
@@ -2264,16 +2528,43 @@ function Tasks({
             <h3>
               <span className={`status-dot ${s}`} />
               {s.replaceAll("_", " ")}
-              <span>{p.tasks.filter((t) => t.status === s).length}</span>
+              <span>
+                {
+                  p.tasks.filter(
+                    (t) =>
+                      t.status === s &&
+                      (
+                        t.title +
+                        " " +
+                        t.description +
+                        " " +
+                        t.requirementIds.join(" ")
+                      )
+                        .toLowerCase()
+                        .includes(query.toLowerCase()),
+                  ).length
+                }
+              </span>
             </h3>
             {p.tasks
-              .filter((t) => t.status === s)
+              .filter(
+                (t) =>
+                  t.status === s &&
+                  (
+                    t.title +
+                    " " +
+                    t.description +
+                    " " +
+                    t.requirementIds.join(" ")
+                  )
+                    .toLowerCase()
+                    .includes(query.toLowerCase()),
+              )
               .map((t) => (
                 <button
                   className="task-card"
                   key={t.id}
                   onClick={() => start(t)}
-                  disabled={!canEdit}
                 >
                   <span className="mono">{t.id}</span>
                   <strong>{t.title}</strong>
@@ -2281,13 +2572,71 @@ function Tasks({
                     <Link2 size={13} />
                     {t.requirementIds.length} linked requirements
                   </div>
+                  {!!t.description && (
+                    <p className="task-description">{t.description}</p>
+                  )}
+                  <ul className="task-links">
+                    {t.requirementIds.slice(0, 3).map((id) => (
+                      <li key={id}>
+                        <b>{id}</b>{" "}
+                        {p.requirements.find((r) => r.id === id)?.text ||
+                          "Removed requirement - update links"}
+                      </li>
+                    ))}
+                  </ul>
+                  {!t.requirementIds.length && (
+                    <small>Link this task to scope to track impact.</small>
+                  )}
                   {s === "needs_review" && (
-                    <Badge tone="amber">Scope changed</Badge>
+                    <>
+                      <Badge tone="amber">
+                        Scope changed - review required
+                      </Badge>
+                      <p className="task-impact-reason">
+                        {p.requests.find(
+                          (r) =>
+                            r.status === "approved" &&
+                            r.analysis.findings.some(
+                              (f) =>
+                                [
+                                  "addition",
+                                  "modification",
+                                  "removal",
+                                ].includes(f.kind) &&
+                                (f.taskIds.includes(t.id) ||
+                                  t.requirementIds.includes(f.requirementId)),
+                            ),
+                        )?.title ||
+                          "An approved scope update affected this work."}
+                      </p>
+                    </>
                   )}
                 </button>
               ))}
-            {!p.tasks.some((t) => t.status === s) && (
-              <div className="column-empty">No tasks here</div>
+            {!p.tasks.some(
+              (t) =>
+                t.status === s &&
+                (
+                  t.title +
+                  " " +
+                  t.description +
+                  " " +
+                  t.requirementIds.join(" ")
+                )
+                  .toLowerCase()
+                  .includes(query.toLowerCase()),
+            ) && (
+              <div className="column-empty">
+                {query
+                  ? "No matching tasks"
+                  : s === "needs_review"
+                    ? "No scope reviews pending"
+                    : s === "todo"
+                      ? "Add a task or preview a task plan"
+                      : s === "in_progress"
+                        ? "Move reviewed work here when it starts"
+                        : "Completed work appears here"}
+              </div>
             )}
           </section>
         ))}
@@ -2295,7 +2644,11 @@ function Tasks({
       {adding && (
         <Modal
           title={edit ? "Review task" : "Add a task"}
-          subtitle="Link tasks to requirements so approved changes can flag them."
+          subtitle={
+            canEdit
+              ? "Review changed scope and record the next action."
+              : "Read-only task details and scope evidence."
+          }
           busy={busy}
           close={() => setAdding(false)}
         >
@@ -2310,6 +2663,8 @@ function Tasks({
                     {
                       revision: p.revision,
                       title,
+                      description,
+                      reviewNote,
                       requirementIds: ids,
                       ...(edit ? { status } : {}),
                     },
@@ -2319,164 +2674,126 @@ function Tasks({
               }, "Task saved.");
             }}
           >
-            <label>
-              Task title
-              <input
-                minLength={3}
-                maxLength={200}
-                required
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-              />
-            </label>
-            {edit && (
+            <fieldset disabled={!canEdit || busy}>
               <label>
-                Status
-                <select
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value as Task["status"])}
-                >
-                  {["todo", "in_progress", "done", "needs_review"].map((s) => (
-                    <option key={s} value={s}>
-                      {s.replaceAll("_", " ")}
-                    </option>
-                  ))}
-                </select>
+                Task title
+                <input
+                  minLength={3}
+                  maxLength={200}
+                  required
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                />
               </label>
-            )}
-            <label>Linked requirements</label>
-            <div className="checkbox-list">
-              {p.requirements.map((r) => (
-                <label key={r.id}>
-                  <input
-                    type="checkbox"
-                    checked={ids.includes(r.id)}
+              <label>
+                Work description / acceptance notes
+                <textarea
+                  maxLength={2000}
+                  rows={3}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                />
+              </label>
+              {edit?.status === "needs_review" && (
+                <div className="info warning">
+                  <div>
+                    <strong>Approved scope changed.</strong>
+                    <p>
+                      Inspect the linked requirement wording below, update this
+                      work and explain how you reviewed it before moving it out
+                      of Needs Review.
+                    </p>
+                  </div>
+                </div>
+              )}
+              {edit && (
+                <label>
+                  Status
+                  <select
+                    value={status}
                     onChange={(e) =>
-                      setIds((prev) =>
-                        e.target.checked
-                          ? [...prev, r.id]
-                          : prev.filter((x) => x !== r.id),
+                      setStatus(e.target.value as Task["status"])
+                    }
+                  >
+                    {["todo", "in_progress", "done", "needs_review"].map(
+                      (s) => (
+                        <option key={s} value={s}>
+                          {s.replaceAll("_", " ")}
+                        </option>
+                      ),
+                    )}
+                  </select>
+                </label>
+              )}
+              {edit && (
+                <label>
+                  Review / update note
+                  <textarea
+                    maxLength={1000}
+                    rows={2}
+                    value={reviewNote}
+                    onChange={(e) => setReviewNote(e.target.value)}
+                    placeholder="What changed and what should happen next?"
+                  />
+                </label>
+              )}
+              <label>Linked requirements</label>
+              <div className="checkbox-list">
+                {p.requirements.map((r) => (
+                  <label key={r.id}>
+                    <input
+                      type="checkbox"
+                      checked={ids.includes(r.id)}
+                      onChange={(e) =>
+                        setIds((prev) =>
+                          e.target.checked
+                            ? [...prev, r.id]
+                            : prev.filter((x) => x !== r.id),
+                        )
+                      }
+                    />
+                    <span>
+                      <b>{r.id}</b>
+                      {r.text}
+                    </span>
+                  </label>
+                ))}
+              </div>
+              {ids.some((id) => !p.requirements.some((r) => r.id === id)) && (
+                <div className="info warning">
+                  A linked requirement was removed.
+                  <button
+                    type="button"
+                    className="text-button"
+                    onClick={() =>
+                      setIds(
+                        ids.filter((id) =>
+                          p.requirements.some((r) => r.id === id),
+                        ),
                       )
                     }
-                  />
-                  <span>
-                    <b>{r.id}</b>
-                    {r.text}
-                  </span>
-                </label>
-              ))}
-            </div>
-            {ids.some((id) => !p.requirements.some((r) => r.id === id)) && (
-              <div className="info warning">
-                A linked requirement was removed.
-                <button
-                  type="button"
-                  className="text-button"
-                  onClick={() =>
-                    setIds(
-                      ids.filter((id) =>
-                        p.requirements.some((r) => r.id === id),
-                      ),
-                    )
-                  }
-                >
-                  Remove obsolete links
-                </button>
-              </div>
-            )}
-            <button className="button primary full" disabled={busy}>
-              Save task <Check size={16} />
-            </button>
+                  >
+                    Remove obsolete links
+                  </button>
+                </div>
+              )}
+              <button
+                className="button primary full"
+                disabled={
+                  busy ||
+                  !canEdit ||
+                  (edit?.status === "needs_review" &&
+                    status !== "needs_review" &&
+                    reviewNote.trim().length < 5)
+                }
+              >
+                Save task <Check size={16} />
+              </button>
+            </fieldset>
           </form>
         </Modal>
       )}
     </>
-  );
-}
-function HistoryView({ p }: { p: Project }) {
-  const [version, setVersion] = useState(p.versions.length);
-  const v = p.versions.find((v) => v.number === version);
-  return (
-    <div className="history-grid">
-      <section className="panel">
-        <div className="panel-heading">
-          <h2>Decision trail</h2>
-          <button
-            className="text-button"
-            onClick={() =>
-              download(
-                `${p.name}-history.json`,
-                JSON.stringify(
-                  {
-                    versions: p.versions,
-                    requests: p.requests,
-                    events: p.events,
-                  },
-                  null,
-                  2,
-                ),
-              )
-            }
-          >
-            <Download size={15} />
-            Export
-          </button>
-        </div>
-        <div className="timeline large">
-          {p.events.map((e) => (
-            <div className="timeline-item" key={e.id}>
-              <div className="timeline-dot latest">
-                <Check size={11} />
-              </div>
-              <div>
-                <strong>{e.action}</strong>
-                <p>{e.detail}</p>
-                <small>
-                  {e.actor} · {new Date(e.at).toLocaleString()}
-                </small>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-      <section className="panel">
-        <div className="panel-heading">
-          <h2>Baseline archive</h2>
-          {p.versions.length > 0 && (
-            <select
-              aria-label="Baseline version"
-              value={version}
-              onChange={(e) => setVersion(Number(e.target.value))}
-            >
-              {p.versions.map((v) => (
-                <option key={v.number} value={v.number}>
-                  Version {v.number}
-                </option>
-              ))}
-            </select>
-          )}
-        </div>
-        {v ? (
-          <div className="archive">
-            <Badge tone="green">Version {v.number}</Badge>
-            <p>{v.reason}</p>
-            <small>
-              {v.approvedBy} · {date(v.approvedAt)}
-            </small>
-            {v.requirements.map((r) => (
-              <div className="archive-req" key={r.id}>
-                <span className="mono">{r.id}</span>
-                <p>{r.text}</p>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <Empty title="Your first version awaits">
-            Approve a baseline to start your history.
-          </Empty>
-        )}
-      </section>
-    </div>
   );
 }
 function SettingsView({

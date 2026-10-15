@@ -8,7 +8,8 @@ Requests pass through security headers, generated request IDs, an ingress rate l
 | --- | --- |
 | API ingress, before authentication | 600 requests/minute per socket IP |
 | Authenticated API | 100 requests/minute per user |
-| Analysis and document upload | 8 requests/minute per user |
+| AI analysis | 8 requests/minute per user |
+| Document upload and explicit manual/local preparation | 30 requests/minute per user |
 | Invitation attempts | 10 requests/hour per user |
 | Session initialization | 10 requests/minute per user |
 | Forced connection checks | 6 requests/minute per user |

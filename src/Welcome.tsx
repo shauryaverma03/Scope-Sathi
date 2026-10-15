@@ -177,15 +177,17 @@ export function FirstVisit({ navigate }: { navigate?: (tab: string) => void }) {
   }
   return (
     <>
-      <button className="button tour-launch" onClick={() => setOpen(true)}>
-        <Compass size={16} /> Website tour
-      </button>
-      <button
-        className="text-button preference-launch"
-        onClick={() => setNotice(true)}
-      >
-        Privacy preferences
-      </button>
+      <div className="workspace-help-actions">
+        <button className="button tour-launch" onClick={() => setOpen(true)}>
+          <Compass size={16} /> Website tour
+        </button>
+        <button
+          className="text-button preference-launch"
+          onClick={() => setNotice(true)}
+        >
+          Privacy preferences
+        </button>
+      </div>
       {notice && !open && (
         <section
           className="preference-notice"

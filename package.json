@@ -10,14 +10,15 @@
     "dev": "concurrently -k -n api,web \"tsx watch server/index.ts\" \"vite --host 127.0.0.1\"",
     "build": "tsc --noEmit && vite build",
     "start": "tsx server/index.ts",
-    "test": "tsx --test tests/*.test.ts",
+    "test": "tsx --test tests/*.test.ts tests/*.test.tsx",
     "check": "tsc --noEmit",
     "cloud:configure": "node scripts/configure-google.mjs",
     "format": "prettier --write src server shared tests scripts/*.mjs *.json vite.config.ts",
     "firestore:configure": "node scripts/configure-firestore.mjs",
     "test:firestore": "node --import tsx tests/firestore.live.ts",
     "email:configure": "node scripts/configure-email.mjs",
-    "test:invitations": "node --import tsx tests/invitations.live.ts"
+    "test:invitations": "node --import tsx tests/invitations.live.ts",
+    "ai:configure": "node --import tsx scripts/configure-gemini.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.28.0",

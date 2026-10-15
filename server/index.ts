@@ -1,4 +1,5 @@
 import { requestContext, makeLimit } from "./protection.js";
+import { proposeAmendment, draftTasks } from "./workspace.js";
 import {
   sessionWelcome,
   syncExistingMemberships,
@@ -237,6 +238,9 @@ const aiLimit = rateLimit({
     error: "Analysis limit reached. Wait a minute before trying again.",
   },
 });
+const documentLimit = makeLimit(30, 60000, true);
+const extractionLimit: express.RequestHandler = (req, res, next) =>
+  (req.body?.method === "local" ? documentLimit : aiLimit)(req, res, next);
 const invitationLimit = makeLimit(10, 3600000, true);
 const connectionLimit = makeLimit(6, 60000, true);
 app.use("/api/session", makeLimit(10, 60000, true));
@@ -331,14 +335,17 @@ app.delete("/api/projects/:id", async (req, res) => {
   await store.delete(id(req), actor(res));
   res.status(204).end();
 });
-app.post("/api/projects/:id/extract", aiLimit, async (req, res) => {
+app.post("/api/projects/:id/extract", extractionLimit, async (req, res) => {
   const p = await store.get(id(req), actor(res));
   access(p, actor(res), true);
   if (p.versions.length) throw new AppError(409, "Baseline already approved.");
-  const { brief } = z.object({ brief: Brief }).parse(req.body);
+  const { brief, method } = z
+    .object({ brief: Brief, method: z.enum(["ai", "local"]).optional() })
+    .parse(req.body);
+  const useAI = liveAI && method !== "local";
   res.json({
-    ...(await extract(brief, liveAI)),
-    engine: liveAI ? engine : "Local line extraction · review before approval",
+    ...(await extract(brief, useAI)),
+    engine: useAI ? engine : "Local document cleanup · no AI calls",
   });
 });
 const upload = multer({
@@ -347,7 +354,7 @@ const upload = multer({
 });
 app.post(
   "/api/projects/:id/document",
-  aiLimit,
+  documentLimit,
   upload.single("file"),
   async (req, res) => {
     const p = await store.get(id(req), actor(res));
@@ -480,7 +487,7 @@ app.post("/api/projects/:id/baseline", async (req, res) => {
     ),
   );
 });
-app.post("/api/projects/:id/requests", aiLimit, async (req, res) => {
+app.post("/api/projects/:id/requests", extractionLimit, async (req, res) => {
   const v = z
     .object({
       revision: Revision,
@@ -489,6 +496,7 @@ app.post("/api/projects/:id/requests", aiLimit, async (req, res) => {
       category: z.enum(["new_scope", "correction"]).default("new_scope"),
       roundId: z.string().max(60).default(""),
       text: z.string().trim().min(10).max(12000),
+      method: z.enum(["ai", "local"]).default("ai"),
     })
     .parse(req.body);
   const p = await store.get(id(req), actor(res));
@@ -498,7 +506,13 @@ app.post("/api/projects/:id/requests", aiLimit, async (req, res) => {
     throw new AppError(409, "Refresh this project before analysing.");
   if (v.roundId && !p.rounds.some((r) => r.id === v.roundId))
     throw new AppError(400, "Unknown revision round.");
-  const analysis = await analyse(p, v.text, liveAI, mode === "demo");
+  const useAI = liveAI && v.method !== "local";
+  const analysis = await analyse(
+    p,
+    v.text,
+    useAI,
+    mode === "demo" && v.method !== "local",
+  );
   const request = {
     id: randomUUID(),
     title: v.title,
@@ -508,7 +522,7 @@ app.post("/api/projects/:id/requests", aiLimit, async (req, res) => {
     text: v.text,
     analysis,
     baselineVersion: p.versions.length,
-    engine,
+    engine: v.method === "local" ? "Manual review · no AI calls" : engine,
     status: "pending" as const,
     createdAt: now(),
     createdBy: actor(res).email,
@@ -598,12 +612,53 @@ app.post("/api/projects/:id/requests/:requestId/decision", async (req, res) => {
     ),
   );
 });
+app.post("/api/projects/:id/amendments", async (req, res) => {
+  const v = z
+    .object({
+      revision: Revision,
+      requirementId: z.string().min(1).max(60),
+      kind: z.enum(["modification", "removal"]),
+      proposedText: z.string().trim().max(2000),
+      message: z.string().trim().min(10).max(2000),
+      category: z.enum(["correction", "new_scope"]),
+    })
+    .parse(req.body);
+  if (v.kind === "modification" && !v.proposedText)
+    throw new AppError(400, "Enter replacement wording.");
+  res.json(
+    await store.update(id(req), actor(res), v.revision, (p) =>
+      proposeAmendment(p, actor(res), v),
+    ),
+  );
+});
+app.post("/api/projects/:id/task-plan", async (req, res) => {
+  const v = z
+    .object({
+      revision: Revision,
+      items: z
+        .array(
+          z.object({
+            title: z.string().trim().min(3).max(200),
+            requirementId: z.string().min(1).max(60),
+          }),
+        )
+        .min(1)
+        .max(30),
+    })
+    .parse(req.body);
+  res.json(
+    await store.update(id(req), actor(res), v.revision, (p) =>
+      draftTasks(p, actor(res), v.items),
+    ),
+  );
+});
 app.post("/api/projects/:id/tasks", async (req, res) => {
   const v = z
     .object({
       revision: Revision,
       title: z.string().trim().min(3).max(200),
       requirementIds: z.array(z.string().max(60)).max(30),
+      description: z.string().trim().max(2000).default(""),
     })
     .parse(req.body);
   res.json(
@@ -614,6 +669,7 @@ app.post("/api/projects/:id/tasks", async (req, res) => {
       p.tasks.push({
         id: `TASK-${randomUUID().slice(0, 8)}`,
         title: v.title,
+        description: v.description,
         requirementIds: v.requirementIds,
         status: "todo",
       });
@@ -628,6 +684,8 @@ app.patch("/api/projects/:id/tasks/:taskId", async (req, res) => {
       status: z.enum(["todo", "in_progress", "done", "needs_review"]),
       title: z.string().trim().min(3).max(200),
       requirementIds: z.array(z.string().max(60)).max(30),
+      description: z.string().trim().max(2000).optional(),
+      reviewNote: z.string().trim().max(1000).optional(),
     })
     .parse(req.body);
   res.json(
@@ -640,9 +698,30 @@ app.patch("/api/projects/:id/tasks/:taskId", async (req, res) => {
       )
         throw new AppError(400, "Link only current requirements.");
       t.title = v.title;
+      if (
+        t.status === "needs_review" &&
+        v.status !== "needs_review" &&
+        (v.reviewNote || "").length < 5
+      )
+        throw new AppError(
+          400,
+          "Record how the changed scope was reviewed before continuing this task.",
+        );
+      if (v.description !== undefined) t.description = v.description;
+      if (v.reviewNote) {
+        t.reviewNote = v.reviewNote;
+        t.reviewedBy = actor(res).email;
+        t.reviewedAt = now();
+      }
+      const previous = t.status;
       t.status = v.status;
       t.requirementIds = v.requirementIds;
-      event(p, actor(res), "Task reviewed", v.title);
+      event(
+        p,
+        actor(res),
+        "Task updated",
+        `${v.title}: ${previous} → ${v.status}. ${v.reviewNote || ""}`,
+      );
     }),
   );
 });
@@ -771,12 +850,10 @@ app.use(
   ) => {
     if (res.headersSent) return _next(err);
     if (err?.type === "entity.parse.failed")
-      return res
-        .status(400)
-        .json({
-          error: "Invalid JSON request.",
-          requestId: res.locals.requestId,
-        });
+      return res.status(400).json({
+        error: "Invalid JSON request.",
+        requestId: res.locals.requestId,
+      });
     if (err instanceof z.ZodError)
       return res.status(400).json({
         error: "Please check your input.",
