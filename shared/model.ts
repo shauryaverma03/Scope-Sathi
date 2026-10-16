@@ -222,6 +222,7 @@ export type Config = {
   storage: "local" | "firestore";
   ai: "manual" | "gemini" | "vertex";
   model: string;
+  demoVideoUrl?: string;
   email?: { configured: boolean; message: string };
   database?: {
     state: "local" | "checking" | "connected" | "error";

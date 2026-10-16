@@ -1,4 +1,5 @@
 import { requestContext, makeLimit } from "./protection.js";
+import { publicDemoVideo } from "../shared/deployment.js";
 import { proposeAmendment, draftTasks } from "./workspace.js";
 import {
   sessionWelcome,
@@ -132,6 +133,7 @@ app.get("/api/config", async (_req, res) =>
   res.json({
     mode,
     model: engine,
+    demoVideoUrl: publicDemoVideo(process.env.DEMO_VIDEO_URL),
     ai: liveAI ? (cloud ? "vertex" : "gemini") : "manual",
     storage: firestore ? "firestore" : "local",
     firebase: firebaseConfig,

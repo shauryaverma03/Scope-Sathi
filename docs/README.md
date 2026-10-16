@@ -9,8 +9,11 @@ Deployment links updated on **16 October 2026**. The owner verified public loadi
 | Guide | Contents |
 | --- | --- |
 | [Owner release steps](OWNER_RELEASE_STEPS.md) | Remaining deployment, account setup and manual checks |
+| [Improvement status](IMPROVEMENT_STATUS.md) | Each supplied recommendation mapped to implemented, pending or deferred work |
 | [Hackathon QA report](HACKATHON_QA_REPORT.md) | Executed checks, developer fixes and open release blockers |
 | [AI evaluation](AI_EVALUATION.md) | Synthetic dataset, held-out scoring and blocked live results |
+| [Human evaluation worksheet](HUMAN_EVALUATION.md) | Semantic review, label adjudication and a paired usability protocol; no fabricated observations |
+| [Proposal PDF draft](../output/pdf/ScopeSathi-Hackathon-Proposal-2026-10-16.pdf) | Illustrated three-page proposal; verify pending evidence before submission |
 | [Submission walkthrough](SUBMISSION_WALKTHROUGH.md) | Three-minute recording script and release checklist |
 | [Product guide](PRODUCT_GUIDE.md) | Illustrated intake, approvals, revision rounds, tasks and onboarding |
 | [Deployment decisions](DEPLOYMENT_DECISIONS.md) | Every cloud setting, its reason, tradeoffs, costs, verification and growth plan |

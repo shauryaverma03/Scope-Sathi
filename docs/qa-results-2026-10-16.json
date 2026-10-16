@@ -1,9 +1,9 @@
 {
   "checkedAt": "2026-10-15T21:54:43.940946+00:00",
-  "scope": "Uncommitted local release; not proof of deployed revision",
+  "scope": "Local follow-up after a022223; tests/build rerun, prior cloud/model/Firestore/audit evidence retained and not rerun",
   "automated": {
-    "tests": 88,
-    "pass": 88,
+    "tests": 91,
+    "pass": 91,
     "fail": 0,
     "skipped": 0
   },
@@ -31,5 +31,14 @@
   },
   "interactiveBrowser": "not executed; manual release checks remain",
   "emailSending": "not executed",
-  "liveFirestore": "pass; disposable fixture cleaned up; original request result v2 and amendment result v3 verified in a fresh process"
+  "liveFirestore": "pass; disposable fixture cleaned up; original request result v2 and amendment result v3 verified in a fresh process",
+  "followUpCheckedAt": "2026-10-15T22:16:10.399252+00:00",
+  "proposalPdf": "3-page draft; all final rendered pages visually inspected",
+  "followUpFeatures": [
+    "source-line navigation",
+    "client quote guidance",
+    "quote/reviewer traceability",
+    "optional validated demo recording link",
+    "human evaluation worksheet"
+  ]
 }

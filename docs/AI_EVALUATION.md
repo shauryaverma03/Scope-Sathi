@@ -41,4 +41,6 @@ Local schema, scoring, evidence, metadata and approval regression checks pass. T
 
 ## Real-user evaluation
 
+Use the [human-review and usability worksheet](HUMAN_EVALUATION.md) to record semantic relevance, proposal rewrites, label disagreements and a paired manual/app comparison. It contains no invented results.
+
 Use permissioned, anonymized examples and compare manual review with ScopeSathi. Record time to locate the relevant agreement, missed changes, false alarms, reviewer edits and clarification usefulness. Keep any small convenience sample clearly labeled as preliminary. No user-study results are supplied by this implementation.

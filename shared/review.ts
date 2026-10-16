@@ -13,10 +13,19 @@ export function evidenceLocation(source: string, quote: string) {
   const start = source.indexOf(text);
   if (start < 0) return undefined;
   const end = start + text.length;
-  let occurrences = 0, offset = 0;
-  while ((offset = source.indexOf(text, offset)) !== -1) { occurrences++; offset += text.length; }
-  return { start, end, firstLine: source.slice(0, start).split("\n").length,
-    lastLine: source.slice(0, end).split("\n").length, occurrences };
+  let occurrences = 0,
+    offset = 0;
+  while ((offset = source.indexOf(text, offset)) !== -1) {
+    occurrences++;
+    offset += text.length;
+  }
+  return {
+    start,
+    end,
+    firstLine: source.slice(0, start).split("\n").length,
+    lastLine: source.slice(0, end).split("\n").length,
+    occurrences,
+  };
 }
 
 /** Historical reviews must use their own baseline, never today's amended wording. */
@@ -104,12 +113,30 @@ export function requestQuote(p: Project, r: ChangeRequest) {
 
 export function nextAction(p: Project, actorEmail?: string) {
   const email = actorEmail?.toLowerCase();
-  const clientQuote = email && p.members[email] && [...(p.quotes || [])].reverse().find((q) =>
-    q.clientEmail === email && q.state === "proposed" && q.scope === roundScope(p, q.roundId));
-  if (clientQuote) return { tab: "settings", title: "Review your extra-work estimate",
-    detail: `${money(clientQuote.amountMinor, clientQuote.currency)} for the quoted round. Open Revision allowance to review the scope and accept or decline. This does not approve the scope or collect payment.` };
-  if (email && p.members[email] === "viewer") return { tab: "history", title: "Follow your project's decisions",
-    detail: "Your viewer access lets you inspect approved versions, evidence and decisions. Only the designated client can respond to their quote." };
+  const clientQuote =
+    email &&
+    p.members[email] &&
+    [...(p.quotes || [])]
+      .reverse()
+      .find(
+        (q) =>
+          q.clientEmail === email &&
+          q.state === "proposed" &&
+          q.scope === roundScope(p, q.roundId),
+      );
+  if (clientQuote)
+    return {
+      tab: "settings",
+      title: "Review your extra-work estimate",
+      detail: `${money(clientQuote.amountMinor, clientQuote.currency)} for the quoted round. Open Revision allowance to review the scope and accept or decline. This does not approve the scope or collect payment.`,
+    };
+  if (email && p.members[email] === "viewer")
+    return {
+      tab: "history",
+      title: "Follow your project's decisions",
+      detail:
+        "Your viewer access lets you inspect approved versions, evidence and decisions. Only the designated client can respond to their quote.",
+    };
   if (!p.versions.length)
     return {
       tab: "baseline",

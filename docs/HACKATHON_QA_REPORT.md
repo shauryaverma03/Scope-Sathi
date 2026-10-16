@@ -8,6 +8,8 @@ Reviewed **16 October 2026**. Scope: local repository, isolated HTTP tests, synt
 
 ## Implemented improvements
 
+Latest local follow-up (after commit `a022223`): source-passage navigation and client guidance are now formatted and regression-tested; traceability includes saved reviewer and current/stale round consent. An optional validated public recording link, blank human-evaluation protocol and illustrated proposal draft complete the submission materials. No recording or human-study result has been invented.
+
 | Improvement | Behavior |
 | --- | --- |
 | Client change report | Preview saved findings, evidence, historical wording, current linked tasks, decision and round quote; print or save PDF through the browser |
@@ -26,10 +28,10 @@ Reviewed **16 October 2026**. Scope: local repository, isolated HTTP tests, synt
 
 | Area | Evidence / result |
 | --- | --- |
-| Automated regression suite | 88 tests passed, zero failed/skipped; includes isolated HTTP and server-rendered UI checks |
+| Automated regression suite | 91 tests passed, zero failed/skipped in the latest follow-up; includes isolated HTTP and server-rendered UI checks |
 | TypeScript and production bundle | Pass; dependency annotation warnings are non-fatal |
-| Production dependency audit | Zero known vulnerabilities reported by `npm audit --omit=dev`; not a security guarantee |
-| Firestore | Disposable create, baseline, request, quote, client acceptance, approval, invoice-reference, amendment, task update, outsider denial and fresh-process read pass; fixture cleaned up |
+| Production dependency audit | Previous QA session: zero known vulnerabilities reported by `npm audit --omit=dev`; not rerun for this follow-up or a security guarantee |
+| Firestore | Previous QA session: disposable create, baseline, request, quote, client acceptance, approval, invoice-reference, amendment, task update, outsider denial and fresh-process read pass; fixture cleaned up. Not repeated for this follow-up |
 | Public deployed health | `ok: true`, `mode: google` |
 | Public deployed configuration | Firestore `connected`, AI `vertex`, model `gemini-3.5-flash-lite`; email sender `configured: false` |
 | Developer API model quality | Blocked: initial 32 attempted calls returned HTTP 402; no validated responses or accuracy result |
@@ -37,6 +39,9 @@ Reviewed **16 October 2026**. Scope: local repository, isolated HTTP tests, synt
 | Local ADC Vertex probe | Blocked: one synthetic call returned HTTP 403; does not test Cloud Run's separate runtime identity |
 | Evaluation dry run | Plans calls without sending them; synthetic labels/splits and score handling tested |
 | Documentation | Local targets, image references, code fences and diff whitespace checked |
+| Proposal PDF | Three pages, architecture image, embedded fonts and all rendered pages visually inspected; draft labels preserve pending checks |
+
+Follow-up regressions verify exact retained-text line ranges, repeated matches, missing evidence and HTML escaping; client-only guidance and stale quote handling; optional recording URLs reject non-HTTPS, credentials and lookalike domains. Source navigation is not included in client reports, so whole source documents are not added to the export. These checks do not exercise actual browser scrolling or external video access.
 
 ## Feature coverage
 

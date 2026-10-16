@@ -8,6 +8,7 @@ Keep private values in ignored .env locally or a deployment secret store. Never 
 | --- | --- |
 | APP_MODE | demo, firebase or google; google required in production |
 | PORT | Backend listen port; Vite proxy reads the configured port |
+| DEMO_VIDEO_URL | Optional public recording on YouTube, Vimeo or Google Drive using HTTPS. Exposed by `/api/config`; renders a link only when valid. No video is embedded or requested before a click. Leave unset until a real recording exists. |
 | STORAGE_BACKEND | firestore enables cloud persistence in firebase mode; google always uses Firestore |
 | SCOPESATHI_DATA_DIR | Explicit local data directory, useful for isolated tests |
 | GOOGLE_CLOUD_PROJECT | Project ID, not display name; must match Firebase config |

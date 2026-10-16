@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { ArrowRight, Check, ShieldCheck, X, Compass } from "lucide-react";
 import { createPortal } from "react-dom";
 import { ExampleWalkthrough } from "./ExampleWalkthrough";
+import { publicDemoVideo } from "../shared/deployment";
 
 function HelpOverlay({ children }: { children: React.ReactNode }) {
   return typeof document === "undefined"
@@ -246,11 +247,14 @@ export function Home({
   login,
   busy,
   error,
+  videoUrl,
 }: {
   login: (remember: boolean) => void;
   busy: boolean;
   error: string;
+  videoUrl?: string;
 }) {
+  const recording = publicDemoVideo(videoUrl);
   const [auth, setAuth] = useState<"signin" | "signup" | null>(null),
     [tour, setTour] = useState(false),
     [remember, setRemember] = useState(false);
@@ -303,6 +307,16 @@ export function Home({
               <button className="text-button" onClick={() => setExample(true)}>
                 Explore a worked example
               </button>
+              {recording && (
+                <a
+                  className="button"
+                  href={recording}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Watch the three-minute demo
+                </a>
+              )}
             </div>
             <p className="home-trust">
               <ShieldCheck size={17} /> Human approval, always. Your team stays

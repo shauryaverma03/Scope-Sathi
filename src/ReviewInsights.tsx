@@ -14,16 +14,48 @@ import {
   wordDiff,
 } from "../shared/review";
 
-export function SourcePassage({ source, quote, label }: { source: string; quote: string; label: string }) {
+export function SourcePassage({
+  source,
+  quote,
+  label,
+}: {
+  source: string;
+  quote: string;
+  label: string;
+}) {
   const location = evidenceLocation(source, quote);
   const mark = useRef<HTMLElement>(null);
-  if (!location) return <p className="helper">{label}: exact passage not found in this source.</p>;
-  return <details className="source-locator" onToggle={(e) => {
-    if (e.currentTarget.open) mark.current?.scrollIntoView({ block: "nearest", inline: "nearest" });
-  }}><summary>{label} · lines {location.firstLine}–{location.lastLine}{location.occurrences > 1 ? ` · first of ${location.occurrences} matches` : ""}</summary>
-    <pre tabIndex={0} aria-label={`${label}, retained text with highlighted evidence`}>{source.slice(0, location.start)}<mark ref={mark}>{source.slice(location.start, location.end)}</mark>{source.slice(location.end)}</pre>
-    <p className="helper">Line numbers refer to retained text, not PDF pages.</p>
-  </details>;
+  if (!location)
+    return (
+      <p className="helper">{label}: exact passage not found in this source.</p>
+    );
+  return (
+    <details
+      className="source-locator"
+      onToggle={(e) => {
+        if (e.currentTarget.open)
+          mark.current?.scrollIntoView({ block: "nearest", inline: "nearest" });
+      }}
+    >
+      <summary>
+        {label} · lines {location.firstLine}–{location.lastLine}
+        {location.occurrences > 1
+          ? ` · first of ${location.occurrences} matches`
+          : ""}
+      </summary>
+      <pre
+        tabIndex={0}
+        aria-label={`${label}, retained text with highlighted evidence`}
+      >
+        {source.slice(0, location.start)}
+        <mark ref={mark}>{source.slice(location.start, location.end)}</mark>
+        {source.slice(location.end)}
+      </pre>
+      <p className="helper">
+        Line numbers refer to retained text, not PDF pages.
+      </p>
+    </details>
+  );
 }
 
 export function WordingDiff({
@@ -76,11 +108,29 @@ export function FindingImpact({
           : "reference needs review"}
         . Text matching does not prove interpretation.
       </p>
-      {locate && <div className="source-locations">
-        <SourcePassage label="Locate incoming evidence" source={r.text} quote={f.requestQuote} />
-        {c.requirement && <SourcePassage label={`Locate agreed wording in v${r.baselineVersion}`} source={c.requirement.text} quote={f.currentQuote} />}
-        {c.requirement && evidenceLocation(p.brief, c.requirement.quote) && <SourcePassage label="Matching passage in original brief" source={p.brief} quote={c.requirement.quote} />}
-      </div>}
+      {locate && (
+        <div className="source-locations">
+          <SourcePassage
+            label="Locate incoming evidence"
+            source={r.text}
+            quote={f.requestQuote}
+          />
+          {c.requirement && (
+            <SourcePassage
+              label={`Locate agreed wording in v${r.baselineVersion}`}
+              source={c.requirement.text}
+              quote={f.currentQuote}
+            />
+          )}
+          {c.requirement && evidenceLocation(p.brief, c.requirement.quote) && (
+            <SourcePassage
+              label="Matching passage in original brief"
+              source={p.brief}
+              quote={c.requirement.quote}
+            />
+          )}
+        </div>
+      )}
       {["modification", "addition", "removal"].includes(f.kind) && (
         <>
           <h4>Proposed wording changes</h4>
@@ -173,11 +223,13 @@ export function Traceability({
                 <th>Request</th>
                 <th>Baseline / requirement</th>
                 <th>Decision</th>
+                <th>Round consent / quote</th>
                 <th>Linked work today</th>
               </tr>
             </thead>
             <tbody>
               {requests.map((r) => {
+                const quote = requestQuote(p, r);
                 const tasks = [
                   ...new Map(
                     r.analysis.findings
@@ -210,10 +262,27 @@ export function Traceability({
                     </td>
                     <td>
                       {r.status}
+                      {r.decidedBy && <small>By {r.decidedBy}</small>}
                       {r.decidedAt && (
                         <small>
                           {new Date(r.decidedAt).toLocaleDateString()}
                         </small>
+                      )}
+                    </td>
+                    <td>
+                      {quote ? (
+                        <>
+                          {money(quote.amountMinor, quote.currency)} ·{" "}
+                          {quote.state}
+                          <small>
+                            {quote.current
+                              ? "Matches current round scope"
+                              : "Scope changed; consent not current"}
+                          </small>
+                          <small>Round amount; not a payment receipt</small>
+                        </>
+                      ) : (
+                        "No formal round quote"
                       )}
                     </td>
                     <td>

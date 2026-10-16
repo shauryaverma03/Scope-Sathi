@@ -10,6 +10,8 @@ From the ScopeSathi repository, inspect `git status` and the diff. Run `npm test
 
 Suggested commit message: `feat: add evidence review reports, traceability and evaluation QA`.
 
+The earlier improvements are present in commit `a022223`; inspect only the new working diff before making the next commit. Review the [proposal draft](../output/pdf/ScopeSathi-Hackathon-Proposal-2026-10-16.pdf) for current status and event requirements before submitting it.
+
 Commit the intended source/documentation changes and push to the connected `main` branch. GitHub Actions will verify tests/build. Cloud Build will package the image, run the Docker test gate and deploy if successful. Open **Cloud Build → History**, select the newest build and verify its commit SHA. If it fails, inspect the failing step; use **Retry build** only after correcting the cause.
 
 ## 2. Verify the new Cloud Run revision
@@ -49,3 +51,11 @@ Use two consenting accounts for role/consent tests. The automated Firestore fixt
 ## 6. Record and submit
 
 Use the [three-minute recording script](SUBMISSION_WALKTHROUGH.md), prepare the proposal PDF, and add actual public video/proposal links. Replace pending status with evidence only after the corresponding check succeeds. Keep unsupported features and unmeasured capacity explicit.
+
+After recording:
+
+1. Upload the real demonstration to YouTube, Vimeo or Google Drive and allow viewing by your intended evaluators. Test access while signed out.
+2. In Cloud Run, edit the service's **Variables & Secrets** and add `DEMO_VIDEO_URL` with the full HTTPS recording URL. Deploy the configuration change on the current application image. For local preview, add it to ignored `.env` and restart the API.
+3. Open the signed-out home page and check **Watch the three-minute demo** opens the intended recording. Invalid or missing URLs hide the link; do not use a placeholder.
+4. Add the same real URL to README and the event form. Application configuration does not edit GitHub or submit the form.
+5. Fill the [human-evaluation worksheet](HUMAN_EVALUATION.md) after actual observations, then update the QA record with results and limitations.

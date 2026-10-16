@@ -19,6 +19,10 @@ The current upgrade adds a client change report with print-to-PDF, evidence word
 
 **Start here:** [QA report and fixes](docs/HACKATHON_QA_REPORT.md) · [AI evaluation](docs/AI_EVALUATION.md) · [Three-minute demo script](docs/SUBMISSION_WALKTHROUGH.md).
 
+See the [recommendation-by-recommendation status](docs/IMPROVEMENT_STATUS.md) for implemented work, owner checks and deferred capacity changes.
+
+The latest local follow-up adds highlighted source-line navigation, designated-client guidance, quote/reviewer traceability and an optional real recording link. **91 automated tests and the production build pass.** Review the [proposal draft](output/pdf/ScopeSathi-Hackathon-Proposal-2026-10-16.pdf), [human-evaluation worksheet](docs/HUMAN_EVALUATION.md) and [owner release steps](docs/OWNER_RELEASE_STEPS.md). These files do not establish that this source revision is deployed.
+
 Local automated checks and disposable Firestore workflows pass. Latest local model probes returned provider 402/403, so no new accuracy claim is made. Public cloud health/Firestore checks pass; authenticated hosted AI, SMTP and interactive browser/printing checks remain release work. The worked example is labeled illustration, not live inference. A recorded demo link will be added only after recording.
 
 ## Documentation

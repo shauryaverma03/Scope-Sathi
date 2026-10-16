@@ -9,18 +9,127 @@ import {
   saveProposal,
 } from "../server/domain";
 import { proposeAmendment, draftTasks } from "../server/workspace";
-import { nextAction, reviewContext, wordDiff } from "../shared/review";
+import {
+  evidenceLocation,
+  nextAction,
+  reviewContext,
+  wordDiff,
+} from "../shared/review";
+import { publicDemoVideo } from "../shared/deployment";
+import { Home } from "../src/Welcome";
 import { roundScope } from "../shared/model";
 import {
   ChangeReport,
   FindingImpact,
   Traceability,
+  SourcePassage,
 } from "../src/ReviewInsights";
 import { ExampleWalkthrough } from "../src/ExampleWalkthrough";
 import { modelRun, validatedModelOutput } from "../server/ai-observability";
 import { AnalysisSchema } from "../shared/model";
 import { aiFailure } from "../server/ai-errors";
 const owner = { uid: "owner", email: "owner@example.com", name: "Owner" };
+test("source navigation identifies retained lines, repeated matches and escaped content", () => {
+  assert.deepEqual(
+    evidenceLocation(
+      "Heading\nSigned in\nCheckout\nSigned in\nCheckout",
+      "Signed in\nCheckout",
+    ),
+    {
+      start: 8,
+      end: 26,
+      firstLine: 2,
+      lastLine: 3,
+      occurrences: 2,
+    },
+  );
+  assert.equal(evidenceLocation("source", "missing"), undefined);
+  assert.equal(evidenceLocation("source", "  "), undefined);
+  const html = renderToStaticMarkup(
+    <SourcePassage
+      source={"line\n<script>"}
+      quote="<script>"
+      label="Evidence"
+    />,
+  );
+  assert.match(html, /lines 2–2/);
+  assert.match(html, /<mark>&lt;script&gt;<\/mark>/);
+  assert.doesNotMatch(html, /<script>/);
+});
+test("public recording is optional and never links unsafe or lookalike destinations", () => {
+  for (const url of [
+    undefined,
+    "",
+    "javascript:alert(1)",
+    "http://youtu.be/id",
+    "https://youtube.com.evil.test/watch?v=x",
+    "https://user:pass@youtu.be/id",
+    "https://youtube.com:444/watch?v=x",
+    "https://youtube.com/",
+  ]) {
+    assert.equal(publicDemoVideo(url), undefined);
+    assert.doesNotMatch(
+      renderToStaticMarkup(
+        <Home login={() => {}} busy={false} error="" videoUrl={url} />,
+      ),
+      /Watch the three-minute demo/,
+    );
+  }
+  const url = "https://www.youtube.com/watch?v=example";
+  assert.equal(publicDemoVideo(url), url);
+  const html = renderToStaticMarkup(
+    <Home login={() => {}} busy={false} error="" videoUrl={url} />,
+  );
+  assert.match(html, /Watch the three-minute demo/);
+  assert.match(html, /rel="noopener noreferrer"/);
+});
+test("client guidance only offers current quotes to their designated project member", () => {
+  const p = fixture(),
+    r = p.requests[0];
+  p.members["client@example.com"] = "viewer";
+  p.quotes = [
+    {
+      id: "Q1",
+      roundId: r.roundId!,
+      currency: "INR",
+      amountMinor: 50000,
+      clientEmail: "client@example.com",
+      scope: roundScope(p, r.roundId!),
+      requestIds: [r.id],
+      state: "proposed",
+      createdAt: "2026-10-16T00:00:00Z",
+      createdBy: owner.email,
+    },
+  ];
+  assert.match(
+    nextAction(p, "CLIENT@example.com").title,
+    /your extra-work estimate/,
+  );
+  assert.match(
+    nextAction(p, "client@example.com").detail,
+    /does not approve the scope or collect payment/,
+  );
+  assert.doesNotMatch(
+    nextAction(p, owner.email).title,
+    /your extra-work estimate/,
+  );
+  const html = renderToStaticMarkup(<Traceability p={p} open={() => {}} />);
+  assert.match(html, /proposed|Matches current round scope/);
+  r.analysis.findings[0].proposedText += " Changed scope.";
+  assert.match(
+    nextAction(p, "client@example.com").title,
+    /Follow your project/,
+  );
+  assert.match(
+    renderToStaticMarkup(<Traceability p={p} open={() => {}} />),
+    /consent not current/,
+  );
+  delete p.members["client@example.com"];
+  assert.doesNotMatch(
+    nextAction(p, "client@example.com").title,
+    /your extra-work estimate/,
+  );
+});
 function fixture() {
   const p = createProject(owner, "Client <script>alert(1)</script>", "", "");
   approveBaseline(p, owner, "Customers must sign in before checkout.", [
@@ -55,6 +164,10 @@ test("reports use the original version after approval and include deterministic 
   assert.match(html, /APPROVED/);
   assert.match(html, /Checkout flow/);
   assert.doesNotMatch(html, /Confidential internal discussion|<script>/);
+  assert.doesNotMatch(
+    html,
+    /source-locator|Matching passage in original brief/,
+  );
   assert.match(html, /&lt;script&gt;/);
   assert.match(
     renderToStaticMarkup(<ChangeReport p={p} r={r} includeNote />),

@@ -2,7 +2,7 @@
 
 ## Hackathon improvement QA — 16 October 2026
 
-**88 automated tests passed**, production build passed, and the production dependency audit reported zero known vulnerabilities. The disposable Firestore workflow passed, including fresh-process persistence and recorded result-version verification. New regressions cover client report privacy, historical source selection, wording diffs, stale consent, model provenance, notification polling and reanalysis preflight.
+**91 automated tests passed** and the production build passed on the latest local follow-up. New cases check source locations/repeated passages, client-specific guidance, stale consent and safe optional recording links. The previous QA session's production dependency audit reported zero known vulnerabilities and its disposable Firestore workflow passed, including fresh-process persistence and result-version verification; those live checks were not repeated for this follow-up.
 
 Public live health/Firestore checks passed; hosted email reports unconfigured. Local model evaluation was blocked by Developer API 402 and local ADC Vertex 403. No semantic accuracy result is claimed. Interactive browser/printing checks and authenticated hosted model verification remain open. This source change is not deployed by the test run. See [QA report](HACKATHON_QA_REPORT.md), [evaluation](AI_EVALUATION.md) and [owner steps](OWNER_RELEASE_STEPS.md).
 

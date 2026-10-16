@@ -22,6 +22,8 @@ This is a recording script, not a claim that a video has been recorded. Do not i
 
 ## Proposal PDF content
 
+A [three-page illustrated draft](../output/pdf/ScopeSathi-Hackathon-Proposal-2026-10-16.pdf) is prepared, including target user, workflow, architecture, tradeoffs and current verification limits. It is a draft, not a completed submission. Regenerate after results change with `python3 scripts/create-proposal.py` (requires ReportLab and Ubuntu-R/Ubuntu-B fonts; set `PROPOSAL_FONT_DIR` to their directory if outside the bundled runtime). Inspect regenerated pages before publishing.
+
 Describe the target user, one concrete problem, the end-to-end solution, why GenAI is useful, the evidence/approval boundary, architecture, measured evaluation results, operating tradeoffs, differentiation and next steps. Identify **Future of Work & Enterprise Productivity**. Verify current requirements in the event dashboard and [official challenge page](https://aibuildercup.com/themes.html).
 
 Explain why an ordinary prompt plus a spreadsheet lacks the connected authorization, revision checks, client consent and persistent task/decision trail demonstrated here. Do not claim legal determination, payment collection, measured savings, production scale, or model accuracy that has not been tested.

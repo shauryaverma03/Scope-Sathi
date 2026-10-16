@@ -91,3 +91,8 @@ A request review shows exact passages and a bounded wording diff with deletions 
 Choose **Preview client report** to inspect the saved request, wording, evidence, questions, decision and round quote. Unsaved proposal edits are excluded. Decision notes are opt-in; member lists, invoice references and internal activity are omitted. **Print / save PDF** uses the browser print dialog; inspect pages before sharing. This does not email a report or generate an invoice.
 
 The public home page offers **Explore a worked example**, a five-step illustration requiring no sign-in and saving no data. It is separate from live AI and does not create a project. Notification polling pauses while the tab is hidden.
+# Evidence navigation and client guidance
+
+In a request review, expand **Locate incoming evidence** or **Locate agreed wording** to see the exact passage highlighted in retained text. A matching original-brief passage is available when the requirement's source quote still exists there. Repeated matches are labeled; line numbers refer to extracted text rather than PDF pages. This context stays in the authenticated review and is excluded from the client report.
+
+Overview guides a designated client with a current proposed round quote to Revision allowance for acceptance or decline. Other viewers receive read-only decision-history guidance. The traceability table shows recorded reviewers and current/stale round consent beside version and task links. Quote acceptance does not approve scope or prove payment.

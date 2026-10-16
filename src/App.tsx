@@ -310,6 +310,7 @@ function App() {
   if (config.mode !== "demo" && !user)
     return (
       <Home
+        videoUrl={config.demoVideoUrl}
         busy={busy}
         error={error}
         login={(remember) =>
@@ -907,7 +908,12 @@ function Overview({
     affected = p.tasks.filter((t) => t.status === "needs_review");
   return (
     <>
-      <NextAction p={p} email={email} navigate={(next) => setTab(next as Tab)} open={open} />
+      <NextAction
+        p={p}
+        email={email}
+        navigate={(next) => setTab(next as Tab)}
+        open={open}
+      />
       <RequestSummary p={p} />
       <section className="setup-checklist">
         <button onClick={() => setTab("baseline")}>
